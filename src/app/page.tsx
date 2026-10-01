@@ -1,69 +1,66 @@
-import Image from "next/image";
+import { readDb } from "@/lib/dataverse/store";
+import { isOpen, isOverdue } from "@/lib/dataverse/queries";
+import { currentUser, canWorkTickets } from "@/lib/session";
+import { Card, PageTitle, label } from "@/components/ui";
 
-export default function Home() {
+// Dashboard page: the Power BI report equivalent. Employees only see their own tickets
+// (row-level security); agents and managers see everything.
+export default async function Dashboard() {
+  const [db, user] = [readDb(), await currentUser()];
+  const tickets = canWorkTickets(user) ? db.tickets : db.tickets.filter((t) => t.requesterId === user.id);
+  const open = tickets.filter(isOpen);
+  const breached = tickets.filter(isOverdue);
+  const resolved = tickets.filter((t) => t.resolvedAt);
+  const avgHours = resolved.length
+    ? resolved.reduce((s, t) => s + (new Date(t.resolvedAt!).getTime() - new Date(t.createdAt).getTime()), 0) / resolved.length / 3_600_000
+    : 0;
+
+  const count = <T,>(items: T[], key: (i: T) => string) =>
+    items.reduce<Record<string, number>>((m, i) => ((m[key(i)] = (m[key(i)] ?? 0) + 1), m), {});
+  const byStatus = count(tickets, (t) => t.status);
+  const byCategory = count(tickets, (t) => db.categories.find((c) => c.id === t.categoryId)?.name ?? "Other");
+  const assetStatus = count(db.assets, (a) => a.status);
+
+  const kpis = [
+    { name: "Open tickets", value: open.length },
+    { name: "SLA breached", value: breached.length, alert: breached.length > 0 },
+    { name: "Avg. resolution", value: `${avgHours.toFixed(1)}h` },
+    { name: "Pending requests", value: db.assetRequests.filter((r) => r.status === "pending").length },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <>
+      <PageTitle sub={`Viewing as ${user.name}${canWorkTickets(user) ? " (all tickets)" : " (your tickets only)"}`}>Dashboard</PageTitle>
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+        {kpis.map((k) => (
+          <Card key={k.name}>
+            <p className="text-sm text-slate-500">{k.name}</p>
+            <p className={`mt-1 text-3xl font-semibold ${k.alert ? "text-red-600" : ""}`}>{k.value}</p>
+          </Card>
+        ))}
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Bars title="Tickets by status" data={byStatus} />
+        <Bars title="Tickets by category" data={byCategory} />
+        <Bars title="Assets by status" data={assetStatus} />
+      </div>
+    </>
+  );
+}
+
+function Bars({ title, data }: { title: string; data: Record<string, number> }) {
+  const max = Math.max(1, ...Object.values(data));
+  return (
+    <Card title={title}>
+      <ul className="space-y-2">
+        {Object.entries(data).map(([k, v]) => (
+          <li key={k} className="text-sm">
+            <div className="mb-1 flex justify-between"><span>{label(k)}</span><span className="text-slate-500">{v}</span></div>
+            <div className="h-2 rounded bg-slate-100"><div className="h-2 rounded bg-indigo-500" style={{ width: `${(v / max) * 100}%` }} /></div>
+          </li>
+        ))}
+        {!Object.keys(data).length && <li className="text-sm text-slate-400">No data</li>}
+      </ul>
+    </Card>
   );
 }
