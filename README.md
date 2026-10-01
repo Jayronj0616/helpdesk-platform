@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HelpDesk Platform
 
-## Getting Started
+An IT helpdesk and asset tracker built with Next.js. It is structured like a Microsoft Power Platform solution, so every piece has a direct equivalent in Dataverse, Power Apps, Power Automate and Power BI.
 
-First, run the development server:
+| Layer | Here | Power Platform |
+|---|---|---|
+| Data | `src/lib/dataverse` (tables, seed, store) | Dataverse |
+| Apps | `src/app/**` (employee form, agent views) | Canvas and model-driven apps |
+| Automation | `src/lib/flows` + `/flows` run history | Power Automate |
+| Reporting | Dashboard (`/`) | Power BI |
+| Security | Persona switcher, role checks, row filtering | Security roles |
+
+## What it does
+
+- **Tickets**: employees submit them, and agents and managers work them. Employees only see their own tickets.
+- **Flow: When a ticket is created**: sets the SLA from the priority, assigns the agent with the fewest open tickets, and alerts the manager on critical tickets.
+- **Flow: Escalate overdue tickets**: bumps the priority of tickets past their SLA (manager only).
+- **Flow: Asset request approval**: managers approve or reject. Approving assigns an available asset from stock.
+- **Flow runs**: every run and the actions it took.
+
+Use the **Signed in as** switcher in the header to try each role (employee, agent, manager).
+
+## Run it
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. Data lives in `data/db.json`, which is created from the seed on first run. Use "Reset demo data" on the Flow runs page (manager) to restore it.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Build the real thing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+[docs/POWER-PLATFORM-BLUEPRINT.md](docs/POWER-PLATFORM-BLUEPRINT.md) is a step-by-step guide to rebuilding this system in the actual Power Platform: tables, security roles, canvas and model-driven apps, flows with expressions, a Power BI report, and a study order.
 
-## Learn More
+## Notes
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This is a portfolio demo. The persona switcher is not real authentication, and the JSON file store is for local use only. To go further, replace `src/lib/dataverse/store.ts` with a real database and the persona with real sign-in.
