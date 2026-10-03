@@ -67,8 +67,21 @@ export interface FlowRun {
   at: string;
 }
 
+// kind "system" entries are the audit trail written by actions and flows.
+// Internal comments are visible to agents and managers only.
+export interface Comment {
+  id: string;
+  ticketId: string;
+  authorId: string | null;
+  body: string;
+  kind: "comment" | "system";
+  internal: boolean;
+  createdAt: string;
+}
+
 export interface Database {
   nextTicketNumber: number;
+  comments: Comment[];
   users: User[];
   categories: Category[];
   tickets: Ticket[];
