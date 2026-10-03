@@ -2,6 +2,7 @@
 // Every run is logged to flowRuns so it shows up in the Flow run history page,
 // like the run history in Power Automate.
 import { newId } from "../dataverse/store";
+import { addSystemEntry } from "../dataverse/comments";
 import type { Database, Ticket, AssetRequest } from "../dataverse/types";
 import { SLA_HOURS } from "../dataverse/types";
 
@@ -33,7 +34,9 @@ export function onTicketCreated(db: Database, ticket: Ticket) {
     ticket.status = "in_progress";
     actions.push(`Assigned to ${pick.name} (${load(pick.id) - 1} other open tickets)`);
     actions.push(`Sent email to ${pick.email}: new ticket #${ticket.number}`);
+    addSystemEntry(db, ticket.id, `Flow auto-assigned this ticket to ${pick.name}`);
   }
+  addSystemEntry(db, ticket.id, `Ticket created. SLA due in ${SLA_HOURS[ticket.priority]}h`);
 
   if (ticket.priority === "critical") {
     const manager = db.users.find((u) => u.role === "manager");
@@ -58,6 +61,7 @@ export function escalateOverdue(db: Database): number {
   for (const t of overdue) {
     const next = order[Math.min(order.indexOf(t.priority) + 1, order.length - 1)];
     actions.push(`Ticket #${t.number}: priority ${t.priority} -> ${next}, flagged as escalated`);
+    addSystemEntry(db, t.id, `Flow escalated this ticket: priority ${t.priority} to ${next} (SLA breached)`);
     t.priority = next;
     t.escalated = true;
     t.updatedAt = new Date().toISOString();
