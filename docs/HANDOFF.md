@@ -5,19 +5,26 @@ The one-page state of the project. **Rewrite this at the end of every working se
 ## What this project is
 An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power Platform solution (data layer = Dataverse, pages = Power Apps, flows = Power Automate, dashboard = Power BI). Its purpose is a portfolio piece plus interview prep for a role using the Power Platform. Repo: github.com/Jayronj0616/helpdesk-platform (public, branch `master`).
 
-## State
-- Everything in PROGRESS.md under "Done" works and is pushed, **except the latest local commits**; run `git status -sb` and `git log origin/master..` to see what is unpushed.
-- Ticket comments (public and internal), an audit trail of status, assignee and flow changes, and ticket search, filters and sorting are built and manually verified (see TESTING.md).
-- Not yet browser-verified: manager approve/reject on `/requests`, "Escalate overdue tickets" button, new-ticket form after the comments change.
+## State (as of 2026-10-04)
+- Everything in PROGRESS.md under "Done" works. Run `git status -sb` to see whether anything is unpushed.
+- Verified: 47 unit tests pass (`npm test`), lint, types and build are clean, and the full manual script was run in a browser (see TESTING.md).
+- Built since the first handoff: comments and audit trail, search, filters and sorting, pagination, related-asset link on the new-ticket form, category validation, Vitest suite.
 
 ## Next step
-Pick the first unchecked item in PROGRESS.md under "Current", else the top of "Backlog". Suggested order: verify manager flows in the browser, then link a ticket to an asset from the form, then pagination.
+The remaining backlog items are larger and need a decision or outside setup:
+1. **Auth and database**: choose a provider (for example Auth.js with credentials or GitHub, and SQLite via Drizzle for local, Postgres for hosting). Keep the `store.ts` function signatures (`readDb`, `mutate`) or migrate callers deliberately. This is a big change, so plan it in DECISIONS.md first.
+2. **Deploy**: blocked on a hosted database, since `data/db.json` needs a writable disk.
+3. **README screenshots** and a Playwright suite are safe, self-contained tasks.
+4. Smaller: change a ticket's asset from the detail page; tickets-per-day chart on the dashboard.
 
 ## Gotchas
 - Next.js 16: `params` and `searchParams` are Promises; use `PageProps<"/route">` types. Read `node_modules/next/dist/docs/` if unsure.
 - `Date.now()` in a component fails lint (`react-hooks/purity`). Put time logic in `src/lib/dataverse/queries.ts`.
 - `data/db.json` is gitignored runtime state. Delete it to reseed. New tables need a default in `readDb()` so old files still load.
-- Bash heredocs with quotes can fail in this environment; write files with the editor tools instead.
+- Unit tests depend on the relative dates in `seed.ts`. Changing the seed can break test expectations.
+- Vitest 5 needs `@types/node` 22 or newer (already upgraded).
+- Bash heredocs with quotes can fail in this environment, and `python` is a hanging Windows Store stub. Write files with the editor tools and use `node` for scripts.
+- To test as another persona in a browser, set the cookie: `document.cookie = "persona=u5; path=/"` (u1 Maria employee, u3 Ana agent, u5 Dina manager).
 - Windows: git prints CRLF warnings and may exit 255 on success. Check `git log`, not the exit code.
 - The user wants many small, single-purpose commits (they care about GitHub contributions).
 
@@ -27,4 +34,4 @@ git pull
 npm install
 npm run dev        # http://localhost:3000, persona switcher in the header
 ```
-Then read PROGRESS.md and continue. Before committing: `npx eslint src && npx tsc --noEmit && npm run build`.
+Then read PROGRESS.md and continue. Before committing: `npx eslint . && npx tsc --noEmit && npm test && npm run build`.
