@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { seedDatabase } from "@/lib/dataverse/seed";
-import { filterTickets, isOverdue, paginate } from "@/lib/dataverse/queries";
+import { filterTickets, isOverdue, paginate, ticketsPerDay } from "@/lib/dataverse/queries";
 
 const nums = (ts: { number: number }[]) => ts.map((t) => t.number).sort();
 
@@ -49,6 +49,29 @@ describe("filterTickets", () => {
     const before = db.tickets.map((t) => t.id);
     run({ sort: "oldest" });
     expect(db.tickets.map((t) => t.id)).toEqual(before);
+  });
+});
+
+describe("ticketsPerDay", () => {
+  const now = Date.parse("2026-10-04T12:00:00Z");
+  const at = (iso: string) => ({ ...seedDatabase().tickets[0], createdAt: iso });
+
+  it("returns one zero-filled bucket per day, oldest first", () => {
+    const out = ticketsPerDay([], 3, now);
+    expect(out).toEqual([
+      { day: "2026-10-02", count: 0 },
+      { day: "2026-10-03", count: 0 },
+      { day: "2026-10-04", count: 0 },
+    ]);
+  });
+
+  it("counts tickets on their creation day", () => {
+    const out = ticketsPerDay([at("2026-10-04T01:00:00Z"), at("2026-10-04T09:00:00Z"), at("2026-10-02T23:59:00Z")], 3, now);
+    expect(out.map((d) => d.count)).toEqual([1, 0, 2]);
+  });
+
+  it("ignores tickets outside the window", () => {
+    expect(ticketsPerDay([at("2026-09-01T00:00:00Z")], 3, now).every((d) => d.count === 0)).toBe(true);
   });
 });
 

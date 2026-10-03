@@ -15,6 +15,17 @@ export interface TicketFilters {
   sort?: "newest" | "oldest" | "due" | "priority";
 }
 
+// Tickets created per UTC day for the last `days` days, oldest first, zero-filled.
+export function ticketsPerDay(tickets: Ticket[], days = 7, now = Date.now()): { day: string; count: number }[] {
+  const keys = Array.from({ length: days }, (_, i) => new Date(now - (days - 1 - i) * 86_400_000).toISOString().slice(0, 10));
+  const counts = new Map(keys.map((k) => [k, 0]));
+  for (const t of tickets) {
+    const k = t.createdAt.slice(0, 10);
+    if (counts.has(k)) counts.set(k, counts.get(k)! + 1);
+  }
+  return keys.map((day) => ({ day, count: counts.get(day)! }));
+}
+
 export const PAGE_SIZE = 10;
 
 // Clamps the requested page into range so a stale link never shows an empty page.
