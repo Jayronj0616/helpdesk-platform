@@ -32,12 +32,21 @@ src/
       seed.ts             Demo data
       store.ts            File-backed DB (data/db.json): readDb, mutate, resetDb, newId
       queries.ts          Pure helpers over rows (isOpen, isOverdue, filterTickets)
+      comments.ts         addComment, addSystemEntry (audit trail), visibleComments (hides internal notes)
     flows/index.ts        Automation flows (Power Automate analog). Each logs a FlowRun.
     session.ts            currentUser() from the persona cookie, role checks
 docs/
-  STRUCTURE.md            This file
+  INDEX.md                Which doc answers which question
+  HANDOFF.md              Current state and next step. Rewrite every session.
   PROGRESS.md             Task tracker. Update after every task.
+  STRUCTURE.md            This file
+  DATA-MODEL.md           Tables, enums, visibility rules
+  FEATURES.md             Routes, permissions, server actions
+  FLOWS.md                Automation flows
+  TESTING.md              Checks and manual test script
+  DECISIONS.md            Why it is built this way
   POWER-PLATFORM-BLUEPRINT.md   Guide to rebuilding this in the real Power Platform
+AGENTS.md, CLAUDE.md      Auto-loaded by AI tools; point at docs/
 data/db.json              Runtime database, gitignored, created from seed on first read
 ```
 
