@@ -1,7 +1,7 @@
 @AGENTS.md
 
 # Project workflow
-- Read `docs/STRUCTURE.md` for the file layout and conventions, and `docs/PROGRESS.md` for the current task list.
-- After finishing a task, tick it in `docs/PROGRESS.md`. If you add or move files, update `docs/STRUCTURE.md`.
-- Verify with `npx eslint src && npx tsc --noEmit && npm run build` before committing.
+- Start every session by reading `docs/HANDOFF.md`, then `docs/PROGRESS.md`. `docs/INDEX.md` says which doc answers which question.
+- Finish every session by ticking `docs/PROGRESS.md` and rewriting `docs/HANDOFF.md`.
 - Commit one logical change at a time. The user wants many small commits.
+- The user is preparing for a Power Platform role: when you change a feature, keep `docs/POWER-PLATFORM-BLUEPRINT.md` in step.
