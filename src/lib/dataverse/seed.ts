@@ -6,6 +6,12 @@ const hoursFrom = (h: number) => new Date(Date.now() + h * 3_600_000).toISOStrin
 export function seedDatabase(): Database {
   return {
     nextTicketNumber: 1007,
+    comments: [
+      { id: "m1", ticketId: "t1", authorId: "u3", body: "Booting into recovery to check the last update.", kind: "comment", internal: false, createdAt: hoursAgo(28) },
+      { id: "m2", ticketId: "t1", authorId: "u3", body: "Likely a failed driver update. Loaner laptop LT-0002 is available if recovery fails.", kind: "comment", internal: true, createdAt: hoursAgo(26) },
+      { id: "m3", ticketId: "t1", authorId: "u1", body: "I have a deadline tomorrow, please prioritise.", kind: "comment", internal: false, createdAt: hoursAgo(24) },
+      { id: "m4", ticketId: "t2", authorId: "u4", body: "Please confirm which Wi-Fi network you are on when it fails.", kind: "comment", internal: false, createdAt: hoursAgo(5) },
+    ],
     users: [
       { id: "u1", name: "Maria Santos", email: "maria@contoso.test", role: "employee", department: "Finance" },
       { id: "u2", name: "Carlo Reyes", email: "carlo@contoso.test", role: "employee", department: "Sales" },

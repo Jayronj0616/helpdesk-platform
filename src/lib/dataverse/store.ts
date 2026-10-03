@@ -11,7 +11,10 @@ export function readDb(): Database {
   if (!fs.existsSync(DB_PATH)) {
     writeDb(seedDatabase());
   }
-  return JSON.parse(fs.readFileSync(DB_PATH, "utf8")) as Database;
+  const db = JSON.parse(fs.readFileSync(DB_PATH, "utf8")) as Database;
+  // Tables added after a db.json was first written get an empty default.
+  db.comments ??= [];
+  return db;
 }
 
 export function writeDb(db: Database): void {
