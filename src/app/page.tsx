@@ -1,5 +1,5 @@
 import { readDb } from "@/lib/dataverse/store";
-import { isOpen, isOverdue } from "@/lib/dataverse/queries";
+import { isOpen, isOverdue, ticketsPerDay } from "@/lib/dataverse/queries";
 import { currentUser, canWorkTickets } from "@/lib/session";
 import { Card, PageTitle, label } from "@/components/ui";
 
@@ -8,6 +8,7 @@ import { Card, PageTitle, label } from "@/components/ui";
 export default async function Dashboard() {
   const [db, user] = [readDb(), await currentUser()];
   const tickets = canWorkTickets(user) ? db.tickets : db.tickets.filter((t) => t.requesterId === user.id);
+  const requests = canWorkTickets(user) ? db.assetRequests : db.assetRequests.filter((r) => r.requesterId === user.id);
   const open = tickets.filter(isOpen);
   const breached = tickets.filter(isOverdue);
   const resolved = tickets.filter((t) => t.resolvedAt);
@@ -25,8 +26,10 @@ export default async function Dashboard() {
     { name: "Open tickets", value: open.length },
     { name: "SLA breached", value: breached.length, alert: breached.length > 0 },
     { name: "Avg. resolution", value: `${avgHours.toFixed(1)}h` },
-    { name: "Pending requests", value: db.assetRequests.filter((r) => r.status === "pending").length },
+    { name: "Pending requests", value: requests.filter((r) => r.status === "pending").length },
   ];
+  const trend = ticketsPerDay(tickets, 7);
+  const trendMax = Math.max(1, ...trend.map((d) => d.count));
 
   return (
     <>
@@ -44,6 +47,17 @@ export default async function Dashboard() {
         <Bars title="Tickets by category" data={byCategory} />
         <Bars title="Assets by status" data={assetStatus} />
       </div>
+      <Card title="Tickets created, last 7 days" className="mt-4">
+        <ol className="flex h-32 items-end gap-2" aria-label="Tickets created per day">
+          {trend.map((d) => (
+            <li key={d.day} className="flex h-full flex-1 flex-col items-center justify-end text-xs text-slate-500">
+              <span>{d.count}</span>
+              <div className="w-full rounded-t bg-indigo-500" style={{ height: `${(d.count / trendMax) * 80}%`, minHeight: d.count ? 4 : 1 }} />
+              <span className="mt-1">{new Date(d.day).toLocaleDateString("en-PH", { month: "short", day: "numeric", timeZone: "UTC" })}</span>
+            </li>
+          ))}
+        </ol>
+      </Card>
     </>
   );
 }
