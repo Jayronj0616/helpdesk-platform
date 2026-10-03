@@ -5,8 +5,8 @@ Every route, what it does, and who can do what. Role checks live in `src/app/act
 | Route | What it does | Employee | Agent | Manager |
 |---|---|---|---|---|
 | `/` | Dashboard: KPI tiles, bar charts | own tickets only | all | all |
-| `/tickets` | List with search (number, title, description, requester), filters (status, priority, category, assignee, overdue) and sort. State is in the URL query: `q`, `status`, `priority`, `category`, `assignee` (user id or `none`), `overdue=1`, `sort` (`newest`/`oldest`/`due`/`priority`). Invalid values are ignored. | own | all | all |
-| `/tickets/new` | Submit ticket, which runs the "ticket created" flow | yes | yes | yes |
+| `/tickets` | List with search (number, title, description, requester), filters (status, priority, category, assignee, overdue) and sort. State is in the URL query: `q`, `status`, `priority`, `category`, `assignee` (user id or `none`), `overdue=1`, `sort` (`newest`/`oldest`/`due`/`priority`). Invalid values are ignored. Paginated 10 per page with `page` (out-of-range pages are clamped; filters are kept in the page links). | own | all | all |
+| `/tickets/new` | Submit ticket, which runs the "ticket created" flow. Optional related asset: employees can only pick assets assigned to them, staff any non-retired asset (re-checked in `createTicket`). The category is validated against the table. | yes | yes | yes |
 | `/tickets/[id]` | Details, activity thread, comment form | own only (404 otherwise) | all | all |
 | `/tickets/[id]` status and assignee form | `updateTicket`, which writes audit entries | no | yes | yes |
 | Comment form | `addTicketComment`; max 2000 chars | own tickets, never internal | any ticket, can mark internal | same as agent |
