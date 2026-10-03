@@ -12,7 +12,7 @@ The data layer and flows are pure functions over a `Database`, so tests build a 
 
 | File | Covers |
 |---|---|
-| `tests/queries.test.ts` | `isOverdue`, `filterTickets` (every filter, search, sorting, no input mutation), `paginate` (clamping, empty list) |
+| `tests/queries.test.ts` | `isOverdue`, `filterTickets` (every filter, search, sorting, no input mutation), `paginate` (clamping, empty list), `ticketsPerDay` |
 | `tests/comments.test.ts` | `visibleComments` (internal notes hidden from employees, ordering), `addComment`, `addSystemEntry` |
 | `tests/flows.test.ts` | `onTicketCreated` (SLA, least-busy assignment, critical alert, no agents), `escalateOverdue` (idempotent, capped, ignores closed), `onAssetRequestDecided` (approve, out of stock, reject) |
 
