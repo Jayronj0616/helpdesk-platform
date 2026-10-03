@@ -31,10 +31,12 @@ src/
       types.ts            Table types, SLA_HOURS. Source of truth for the data model.
       seed.ts             Demo data
       store.ts            File-backed DB (data/db.json): readDb, mutate, resetDb, newId
-      queries.ts          Pure helpers over rows (isOpen, isOverdue, filterTickets)
+      queries.ts          Pure helpers over rows (isOpen, isOverdue, filterTickets, paginate)
       comments.ts         addComment, addSystemEntry (audit trail), visibleComments (hides internal notes)
     flows/index.ts        Automation flows (Power Automate analog). Each logs a FlowRun.
     session.ts            currentUser() from the persona cookie, role checks
+tests/                    Vitest unit tests (queries, comments, flows). Run with npm test.
+vitest.config.mts         Test config (resolves the @ alias)
 docs/
   INDEX.md                Which doc answers which question
   HANDOFF.md              Current state and next step. Rewrite every session.
@@ -61,5 +63,5 @@ data/db.json              Runtime database, gitignored, created from seed on fir
 
 ## Verify before committing
 ```bash
-npx eslint src && npx tsc --noEmit && npm run build
+npx eslint . && npx tsc --noEmit && npm test && npm run build
 ```
