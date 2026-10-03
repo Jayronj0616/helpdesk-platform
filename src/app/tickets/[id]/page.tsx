@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
-import { updateTicket } from "@/app/actions";
+import { addTicketComment, updateTicket } from "@/app/actions";
 import { readDb } from "@/lib/dataverse/store";
+import { visibleComments } from "@/lib/dataverse/comments";
 import { canWorkTickets, currentUser } from "@/lib/session";
 import { Badge, Card, PageTitle, btnCls, fmt, inputCls, label, priorityTone, statusTone } from "@/components/ui";
 
@@ -16,6 +17,7 @@ export default async function TicketDetail({ params }: PageProps<"/tickets/[id]"
   const asset = db.assets.find((a) => a.id === t.assetId);
   const agents = db.users.filter((u) => u.role !== "employee");
   const editable = canWorkTickets(user);
+  const thread = visibleComments(db, t.id, editable);
 
   const rows: [string, React.ReactNode][] = [
     ["Requester", name(t.requesterId)],
@@ -60,6 +62,40 @@ export default async function TicketDetail({ params }: PageProps<"/tickets/[id]"
           )}
         </Card>
       </div>
+
+      <Card title={`Activity (${thread.length})`} className="mt-4">
+        <ol className="mb-4 space-y-3">
+          {thread.map((c) =>
+            c.kind === "system" ? (
+              <li key={c.id} className="text-xs text-slate-500">
+                {fmt(c.createdAt)} · {c.body}
+              </li>
+            ) : (
+              <li key={c.id} className={`rounded border p-3 text-sm ${c.internal ? "border-amber-200 bg-amber-50" : "border-slate-200"}`}>
+                <p className="mb-1 flex items-center gap-2 text-xs text-slate-500">
+                  <span className="font-medium text-slate-700">{name(c.authorId)}</span>
+                  <span>{fmt(c.createdAt)}</span>
+                  {c.internal && <Badge tone="amber">Internal note</Badge>}
+                </p>
+                <p className="whitespace-pre-wrap">{c.body}</p>
+              </li>
+            ),
+          )}
+          {!thread.length && <li className="text-sm text-slate-400">No activity yet.</li>}
+        </ol>
+        <form action={addTicketComment} className="space-y-2">
+          <input type="hidden" name="ticketId" value={t.id} />
+          <textarea name="body" required rows={3} maxLength={2000} aria-label="Add a comment" placeholder="Write a comment..." className={inputCls} />
+          <div className="flex items-center gap-4">
+            <button className={btnCls}>Add comment</button>
+            {editable && (
+              <label className="flex items-center gap-2 text-sm text-slate-600">
+                <input type="checkbox" name="internal" /> Internal note (hidden from requester)
+              </label>
+            )}
+          </div>
+        </form>
+      </Card>
     </>
   );
 }
