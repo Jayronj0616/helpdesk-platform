@@ -15,6 +15,15 @@ export interface TicketFilters {
   sort?: "newest" | "oldest" | "due" | "priority";
 }
 
+export const PAGE_SIZE = 10;
+
+// Clamps the requested page into range so a stale link never shows an empty page.
+export function paginate<T>(items: T[], requestedPage: number, pageSize = PAGE_SIZE) {
+  const pages = Math.max(1, Math.ceil(items.length / pageSize));
+  const page = Math.min(Math.max(1, Math.floor(requestedPage) || 1), pages);
+  return { items: items.slice((page - 1) * pageSize, page * pageSize), page, pages, total: items.length };
+}
+
 const PRIORITY_RANK: Record<Priority, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 
 // Search matches the ticket number, title, description and requester name.
