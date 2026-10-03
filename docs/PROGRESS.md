@@ -22,18 +22,18 @@ Status key: `[x]` done, `[~]` in progress, `[ ]` to do.
 - [x] Priority dropdown ordered low to high
 - [x] Link a related asset when creating a ticket (permission-checked), and validate the category
 - [x] Pagination for the ticket list
-- [x] Vitest unit tests: 47 tests for queries, comments and flows
+- [x] Vitest unit tests: 50 tests for queries, comments and flows
+- [x] Staff can change a ticket's related asset from the detail page (audited)
+- [x] Dashboard: tickets created per day, last 7 days
 
 ## Current
 Nothing in progress. Pick from the backlog.
 
 ## Backlog
-- [ ] Link or change a ticket's asset from the ticket detail page (staff)
 - [ ] Playwright end-to-end tests for the manual script in TESTING.md
 - [ ] Real authentication and a database (replace persona switcher and `data/db.json`); needs a decision on provider, see DECISIONS.md
 - [ ] README screenshots
 - [ ] Deploy (Vercel needs a hosted database first, because `data/db.json` needs a writable disk)
-- [ ] Dashboard: tickets per day trend chart (matches the Power BI line chart in the blueprint)
 
 ## Decisions
 See `docs/DECISIONS.md`.

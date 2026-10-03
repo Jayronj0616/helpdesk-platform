@@ -7,15 +7,15 @@ An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power P
 
 ## State (as of 2026-10-04)
 - Everything in PROGRESS.md under "Done" works. Run `git status -sb` to see whether anything is unpushed.
-- Verified: 47 unit tests pass (`npm test`), lint, types and build are clean, and the full manual script was run in a browser (see TESTING.md).
-- Built since the first handoff: comments and audit trail, search, filters and sorting, pagination, related-asset link on the new-ticket form, category validation, Vitest suite.
+- Verified: 50 unit tests pass (`npm test`), lint, types and build are clean, and the full manual script was run in a browser (see TESTING.md).
+- Built since the first handoff: comments and audit trail, search, filters and sorting, pagination, related-asset link (create and edit), tickets-per-day chart, category validation, Vitest suite (50 tests).
 
 ## Next step
 The remaining backlog items are larger and need a decision or outside setup:
 1. **Auth and database**: choose a provider (for example Auth.js with credentials or GitHub, and SQLite via Drizzle for local, Postgres for hosting). Keep the `store.ts` function signatures (`readDb`, `mutate`) or migrate callers deliberately. This is a big change, so plan it in DECISIONS.md first.
 2. **Deploy**: blocked on a hosted database, since `data/db.json` needs a writable disk.
 3. **README screenshots** and a Playwright suite are safe, self-contained tasks.
-4. Smaller: change a ticket's asset from the detail page; tickets-per-day chart on the dashboard.
+4. Backlog is otherwise empty of small items; consider an `/assets` detail view or CSV export.
 
 ## Gotchas
 - Next.js 16: `params` and `searchParams` are Promises; use `PageProps<"/route">` types. Read `node_modules/next/dist/docs/` if unsure.
