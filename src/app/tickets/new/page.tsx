@@ -1,11 +1,17 @@
 import { createTicket } from "@/app/actions";
 import { readDb } from "@/lib/dataverse/store";
-import { SLA_HOURS } from "@/lib/dataverse/types";
+import { PRIORITIES, SLA_HOURS } from "@/lib/dataverse/types";
+import { canWorkTickets, currentUser } from "@/lib/session";
 import { Card, PageTitle, btnCls, inputCls, label } from "@/components/ui";
 
 // Employee-facing "submit a ticket" form: the canvas app equivalent.
-export default function NewTicket() {
-  const { categories } = readDb();
+export default async function NewTicket() {
+  const { categories, assets: allAssets } = readDb();
+  const user = await currentUser();
+  // Employees can only link equipment assigned to them; IT staff can link any active asset.
+  const assets = canWorkTickets(user)
+    ? allAssets.filter((a) => a.status !== "retired")
+    : allAssets.filter((a) => a.assignedToId === user.id);
   return (
     <>
       <PageTitle sub="Describe the problem. A flow assigns it and sets the SLA.">New ticket</PageTitle>
@@ -29,11 +35,18 @@ export default function NewTicket() {
             <div>
               <label htmlFor="priority" className="mb-1 block text-sm font-medium">Priority</label>
               <select id="priority" name="priority" defaultValue="medium" className={inputCls}>
-                {(Object.keys(SLA_HOURS) as (keyof typeof SLA_HOURS)[]).map((p) => (
+                {PRIORITIES.map((p) => (
                   <option key={p} value={p}>{label(p)} ({SLA_HOURS[p]}h SLA)</option>
                 ))}
               </select>
             </div>
+          </div>
+          <div>
+            <label htmlFor="assetId" className="mb-1 block text-sm font-medium">Related asset (optional)</label>
+            <select id="assetId" name="assetId" className={inputCls}>
+              <option value="">None</option>
+              {assets.map((a) => <option key={a.id} value={a.id}>{a.tag} - {a.name}</option>)}
+            </select>
           </div>
           <button className={btnCls}>Submit ticket</button>
         </form>
