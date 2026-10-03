@@ -1,11 +1,24 @@
 # Testing
 
-There is no automated test suite yet (it is in the backlog). Verification is static checks plus a manual script.
+Verification is automated unit tests (Vitest) plus static checks plus a manual script for the UI.
 
 ## Always before committing
 ```bash
-npx eslint src && npx tsc --noEmit && npm run build
+npx eslint . && npx tsc --noEmit && npm test && npm run build
 ```
+
+## Unit tests (`tests/`, run with `npm test`)
+The data layer and flows are pure functions over a `Database`, so tests build a fresh `seedDatabase()` and call them directly. No server or file access is needed.
+
+| File | Covers |
+|---|---|
+| `tests/queries.test.ts` | `isOverdue`, `filterTickets` (every filter, search, sorting, no input mutation), `paginate` (clamping, empty list) |
+| `tests/comments.test.ts` | `visibleComments` (internal notes hidden from employees, ordering), `addComment`, `addSystemEntry` |
+| `tests/flows.test.ts` | `onTicketCreated` (SLA, least-busy assignment, critical alert, no agents), `escalateOverdue` (idempotent, capped, ignores closed), `onAssetRequestDecided` (approve, out of stock, reject) |
+
+Tests depend on the relative dates in `src/lib/dataverse/seed.ts`. If you change the seed, re-run the tests and adjust expectations (for example ticket 1001 is the only overdue open ticket).
+
+Add a test whenever you add or change a function in `queries.ts`, `comments.ts` or `flows/index.ts`. Server actions and pages are covered by the manual script below.
 
 ## Quick checks with curl
 Start the server (`npm run dev -- -p 3100`) and delete `data/db.json` first to reseed. The default persona is Maria (employee). Pass `-b persona=u3` for Ana (agent) or `-b persona=u5` for Dina (manager).
@@ -29,5 +42,8 @@ React inserts `<!-- -->` between adjacent text values, so strip them before grep
 5. As Dina: click "Run Escalate overdue tickets", then confirm ticket 1001 is escalated.
 6. As Dina: "Reset demo data" restores the seed.
 
-## Backlog for tests
-Unit tests for `filterTickets`, `visibleComments`, and the three flows (they are pure functions over a `Database`, so they are easy to test with Vitest).
+## Last manual verification
+Steps 1 to 6 above were run in a real browser on 2026-10-03: ticket creation and its flow, comments, manager approval (asset assigned, run logged), escalation (priority raised, audit entry written) and reset. Pagination was checked with 31 tickets (clamping, filters kept in page links).
+
+## Not covered yet
+Server actions and pages have no automated tests. A Playwright suite for the manual script is the natural next step.
