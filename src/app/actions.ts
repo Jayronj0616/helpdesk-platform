@@ -7,6 +7,8 @@ import { mutate, newId, resetDb } from "@/lib/dataverse/store";
 import type { Priority, TicketStatus } from "@/lib/dataverse/types";
 import { canApprove, canWorkTickets, currentUser, PERSONA_COOKIE } from "@/lib/session";
 import { escalateOverdue, onAssetRequestDecided, onTicketCreated } from "@/lib/flows";
+import { addComment, addSystemEntry } from "@/lib/dataverse/comments";
+import { label } from "@/components/ui";
 
 const PRIORITIES: Priority[] = ["low", "medium", "high", "critical"];
 const STATUSES: TicketStatus[] = ["new", "in_progress", "waiting", "resolved", "closed"];
@@ -52,12 +54,35 @@ export async function updateTicket(formData: FormData) {
   mutate((db) => {
     const t = db.tickets.find((x) => x.id === id);
     if (!t) return;
+    const who = (uid: string | null) => db.users.find((u) => u.id === uid)?.name ?? "Unassigned";
+    if (t.status !== status) addSystemEntry(db, t.id, `${user.name} changed status from ${label(t.status)} to ${label(status)}`);
+    if ((t.assigneeId ?? "") !== assigneeId) {
+      addSystemEntry(db, t.id, `${user.name} changed assignee from ${who(t.assigneeId)} to ${who(assigneeId || null)}`);
+    }
     t.status = status;
     t.assigneeId = assigneeId || null;
     t.updatedAt = new Date().toISOString();
     t.resolvedAt = status === "resolved" || status === "closed" ? (t.resolvedAt ?? t.updatedAt) : null;
   });
   revalidatePath("/", "layout");
+}
+
+export async function addTicketComment(formData: FormData) {
+  const user = await currentUser();
+  const ticketId = String(formData.get("ticketId"));
+  const body = String(formData.get("body") ?? "").trim().slice(0, 2000);
+  if (!body) return;
+  // Only IT staff can write internal notes.
+  const internal = canWorkTickets(user) && formData.get("internal") === "on";
+
+  mutate((db) => {
+    const t = db.tickets.find((x) => x.id === ticketId);
+    // Employees can only comment on their own tickets.
+    if (!t || (!canWorkTickets(user) && t.requesterId !== user.id)) return;
+    addComment(db, { ticketId, authorId: user.id, body, internal });
+    t.updatedAt = new Date().toISOString();
+  });
+  revalidatePath(`/tickets/${ticketId}`);
 }
 
 export async function createAssetRequest(formData: FormData) {
