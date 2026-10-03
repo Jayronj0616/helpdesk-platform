@@ -4,13 +4,12 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { mutate, newId, resetDb } from "@/lib/dataverse/store";
-import type { Priority, TicketStatus } from "@/lib/dataverse/types";
+import { PRIORITIES, type Priority, type TicketStatus } from "@/lib/dataverse/types";
 import { canApprove, canWorkTickets, currentUser, PERSONA_COOKIE } from "@/lib/session";
 import { escalateOverdue, onAssetRequestDecided, onTicketCreated } from "@/lib/flows";
 import { addComment, addSystemEntry } from "@/lib/dataverse/comments";
 import { label } from "@/components/ui";
 
-const PRIORITIES: Priority[] = ["low", "medium", "high", "critical"];
 const STATUSES: TicketStatus[] = ["new", "in_progress", "waiting", "resolved", "closed"];
 
 export async function switchPersona(formData: FormData) {
@@ -25,13 +24,18 @@ export async function createTicket(formData: FormData) {
   const priority = String(formData.get("priority")) as Priority;
   const categoryId = String(formData.get("categoryId"));
   if (!title || !PRIORITIES.includes(priority)) return;
+  const requestedAsset = String(formData.get("assetId") ?? "");
 
   const number = mutate((db) => {
+    if (!db.categories.some((c) => c.id === categoryId)) return null;
     const now = new Date().toISOString();
+    // Only link an asset the requester is allowed to reference.
+    const asset = db.assets.find((a) => a.id === requestedAsset);
+    const assetId = asset && (canWorkTickets(user) || asset.assignedToId === user.id) ? asset.id : null;
     const ticket = {
       id: newId("t"), number: db.nextTicketNumber++, title, description,
       requesterId: user.id, assigneeId: null, categoryId, priority,
-      status: "new" as TicketStatus, assetId: null, createdAt: now, updatedAt: now,
+      status: "new" as TicketStatus, assetId, createdAt: now, updatedAt: now,
       dueAt: now, resolvedAt: null, escalated: false,
     };
     db.tickets.unshift(ticket);
@@ -39,6 +43,7 @@ export async function createTicket(formData: FormData) {
     return ticket.number;
   });
 
+  if (number === null) return;
   revalidatePath("/", "layout");
   redirect(`/tickets?created=${number}`);
 }
