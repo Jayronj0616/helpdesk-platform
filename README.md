@@ -20,6 +20,10 @@ An IT helpdesk and asset tracker built with Next.js. It is structured like a Mic
 
 Use the **Signed in as** switcher in the header to try each role (employee, agent, manager).
 
+## Docs
+
+Project docs live in [docs/](docs/INDEX.md): current state, progress tracker, structure, data model, features and permissions, flows, testing and design decisions. `AGENTS.md` and `CLAUDE.md` point AI coding tools at them.
+
 ## Run it
 
 ```bash
