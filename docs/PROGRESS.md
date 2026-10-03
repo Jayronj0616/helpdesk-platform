@@ -1,6 +1,6 @@
 # Progress tracker
 
-Update this file as part of every task: tick the box, add a one-line note, and move new ideas into Backlog. See `docs/STRUCTURE.md` for how the code is organised.
+Update this file as part of every task: tick the box, add a one-line note, and move new ideas into Backlog. See `docs/INDEX.md` for the other docs and `docs/HANDOFF.md` for the next step.
 
 Status key: `[x]` done, `[~]` in progress, `[ ]` to do.
 
@@ -14,25 +14,23 @@ Status key: `[x]` done, `[~]` in progress, `[ ]` to do.
 - [x] Flows: ticket created, escalate overdue, asset request decided, with run history
 - [x] Power Platform blueprint guide
 - [x] Published to GitHub (Jayronj0616/helpdesk-platform)
+- [x] Ticket comments: public and internal notes, hidden from employees
+- [x] Audit trail: status, assignee and flow changes logged on the ticket
+- [x] Ticket search and filters (status, priority, category, assignee, overdue) and sorting, state in the URL
+- [x] AI handoff docs (AGENTS.md, CLAUDE.md, docs/*)
 
-## Current: Comments and search
-- [ ] Comment type, store migration and seed data
-- [ ] Add comment action (role-aware, internal notes)
-- [ ] Audit trail: status and assignee changes logged as system entries
-- [ ] Comment thread UI on ticket detail
-- [ ] `filterTickets` query helper
-- [ ] Ticket list: search, status, priority, category, assignee, overdue filters and sort
-- [ ] Update STRUCTURE.md, blueprint (Comment table) and README
+## Current
+- [x] Comment table and audit logging added to POWER-PLATFORM-BLUEPRINT.md
+- [ ] Verify the manager flows in the browser (approve/reject, escalate)
 
 ## Backlog
-- [ ] Verify the manager flows in the browser (approve/reject, escalate)
 - [ ] Sort the priority dropdown low to high on the new-ticket form
 - [ ] Link a ticket to an asset from the ticket form
 - [ ] Pagination for long ticket lists
+- [ ] Unit tests (Vitest) for `filterTickets`, `visibleComments` and the three flows
 - [ ] Real authentication and a database (replace persona switcher and `data/db.json`)
 - [ ] README screenshots
 - [ ] Deploy (Vercel + hosted database)
 
 ## Decisions
-- JSON file store instead of a database, to keep the demo zero-setup. The store module is the only thing to swap.
-- Persona switcher instead of real login, so each security role can be demoed instantly.
+See `docs/DECISIONS.md`.
