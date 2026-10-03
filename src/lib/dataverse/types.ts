@@ -96,3 +96,6 @@ export const SLA_HOURS: Record<Priority, number> = {
   medium: 24,
   low: 72,
 };
+
+// Lowest to highest. Use this for dropdown order and ranking.
+export const PRIORITIES: Priority[] = ["low", "medium", "high", "critical"];

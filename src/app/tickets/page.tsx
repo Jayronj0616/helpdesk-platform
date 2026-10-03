@@ -3,10 +3,9 @@ import { readDb } from "@/lib/dataverse/store";
 import { filterTickets, isOverdue, type TicketFilters } from "@/lib/dataverse/queries";
 import { canWorkTickets, currentUser } from "@/lib/session";
 import { Badge, PageTitle, btnCls, btnGhostCls, fmt, inputCls, label, priorityTone, statusTone } from "@/components/ui";
-import type { Priority, TicketStatus } from "@/lib/dataverse/types";
+import { PRIORITIES, type TicketStatus } from "@/lib/dataverse/types";
 
 const STATUSES: TicketStatus[] = ["new", "in_progress", "waiting", "resolved", "closed"];
-const PRIORITIES: Priority[] = ["low", "medium", "high", "critical"];
 const SORTS = [
   ["newest", "Newest first"],
   ["oldest", "Oldest first"],
