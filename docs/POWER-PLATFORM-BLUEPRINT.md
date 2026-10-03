@@ -17,6 +17,7 @@ Create these in the solution (New > Table). Use the display names below; Dataver
 |---|---|---|
 | **Category** | Name (text) | Reference data |
 | **Ticket** | Number (autonumber, prefix `TKT-`), Title (text), Description (multiline), Priority (choice: Low, Medium, High, Critical), Status (choice: New, In progress, Waiting, Resolved, Closed), Category (lookup), Requester (lookup to User), Assignee (lookup to User), Related Asset (lookup), Due At (date and time), Resolved On (date and time), Escalated (yes/no) | The main table |
+| **Ticket Comment** | Ticket (lookup, required), Body (multiline), Author (lookup to User, empty for system entries), Kind (choice: Comment, System), Internal (yes/no) | Activity thread and audit trail. Alternatively use the built-in **Notes** (Annotations) or **Posts** feature for public comments; keep this table when you need the Internal flag. |
 | **Asset** | Tag (text, unique), Name (text), Type (choice), Status (choice: Available, Assigned, Repair, Retired), Assigned To (lookup to User), Purchased On (date) | Inventory |
 | **Asset Request** | Asset Type (choice), Justification (multiline), Requester (lookup), Status (choice: Pending, Approved, Rejected), Decided By (lookup), Decided On (date and time) | Drives the approval flow |
 
@@ -28,6 +29,8 @@ Relationships: Ticket -> Category (many-to-one), Ticket -> Asset (many-to-one), 
 - **HelpDesk Manager**: everything the Agent has, plus Write on Asset Request (to approve), at *Organization* level.
 
 Interview point: the three access levels (User, Business unit, Organization) are how Dataverse does row-level security. This is what `canWorkTickets` and the "employees only see their own tickets" filters mimic.
+
+Internal notes need a security rule too: in the model-driven app, put internal comments in a view filtered to `Internal = No` for the Employee role (a separate view or a security role that has no read access to the Internal column through **column-level security**). Interview point: column security profiles hide a single field from certain roles, which is how "internal notes" works here.
 
 Add a **business rule** on Ticket (table > Business rules): if Status is Resolved or Closed, set Resolved On to now. This replaces the `resolvedAt` handling in `updateTicket`.
 
@@ -92,6 +95,8 @@ Create these in the solution (New > Automation > Cloud flow).
   2. *Condition* on the outcome:
      - **Approve**: *List rows* on Asset where Type matches and Status = Available (top count 1). If a row exists, *Update a row* (Status = Assigned, Assigned To = requester); otherwise *Create a row* in a Planner or a task list for purchasing. Update the request Status to Approved. *Send an email* to the requester.
      - **Reject**: update the request Status to Rejected and *Send an email*.
+
+**Audit trail:** in Flows 1 and 2, add a *Add a new row* action on Ticket Comment (Kind = System, Internal = No) describing what the flow did. This is what the "Activity" thread shows on each ticket.
 
 Interview points: approvals show up for the manager in Teams, Outlook and the Power Automate Approvals center with no extra UI work. Use **Run history** to debug (this is what the `/flows` page imitates). Put connection references and environment variables in the solution so it deploys cleanly.
 
