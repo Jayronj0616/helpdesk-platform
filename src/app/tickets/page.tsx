@@ -1,21 +1,42 @@
 import Link from "next/link";
 import { readDb } from "@/lib/dataverse/store";
-import { isOverdue } from "@/lib/dataverse/queries";
+import { filterTickets, isOverdue, type TicketFilters } from "@/lib/dataverse/queries";
 import { canWorkTickets, currentUser } from "@/lib/session";
-import { Badge, PageTitle, btnCls, fmt, label, priorityTone, statusTone } from "@/components/ui";
-import type { TicketStatus } from "@/lib/dataverse/types";
+import { Badge, PageTitle, btnCls, btnGhostCls, fmt, inputCls, label, priorityTone, statusTone } from "@/components/ui";
+import type { Priority, TicketStatus } from "@/lib/dataverse/types";
 
-// Ticket list: the model-driven app "view". Filter with ?status=...
+const STATUSES: TicketStatus[] = ["new", "in_progress", "waiting", "resolved", "closed"];
+const PRIORITIES: Priority[] = ["low", "medium", "high", "critical"];
+const SORTS = [
+  ["newest", "Newest first"],
+  ["oldest", "Oldest first"],
+  ["due", "Due soonest"],
+  ["priority", "Highest priority"],
+] as const;
+
+const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : undefined);
+const pick = <T extends string>(v: string | undefined, allowed: readonly T[]) => allowed.find((a) => a === v);
+
+// Ticket list: the model-driven app "view". All filters live in the URL (GET form), so views are shareable.
 export default async function Tickets({ searchParams }: PageProps<"/tickets">) {
   const sp = await searchParams;
-  const status = typeof sp.status === "string" ? (sp.status as TicketStatus) : undefined;
-  const created = typeof sp.created === "string" ? sp.created : undefined;
+  const created = one(sp.created);
   const [db, user] = [readDb(), await currentUser()];
+  const staff = canWorkTickets(user);
 
-  let tickets = canWorkTickets(user) ? db.tickets : db.tickets.filter((t) => t.requesterId === user.id);
-  if (status) tickets = tickets.filter((t) => t.status === status);
+  const filters: TicketFilters = {
+    q: one(sp.q),
+    status: pick(one(sp.status), STATUSES),
+    priority: pick(one(sp.priority), PRIORITIES),
+    categoryId: db.categories.find((c) => c.id === one(sp.category))?.id,
+    assignee: one(sp.assignee),
+    overdue: one(sp.overdue) === "1",
+    sort: pick(one(sp.sort), SORTS.map((s) => s[0])),
+  };
+  const visible = staff ? db.tickets : db.tickets.filter((t) => t.requesterId === user.id);
+  const tickets = filterTickets(db, visible, filters);
+  const filtered = Boolean(filters.q || filters.status || filters.priority || filters.categoryId || filters.assignee || filters.overdue);
   const name = (id: string | null) => db.users.find((u) => u.id === id)?.name ?? "Unassigned";
-  const statuses: TicketStatus[] = ["new", "in_progress", "waiting", "resolved", "closed"];
 
   return (
     <>
@@ -28,14 +49,47 @@ export default async function Tickets({ searchParams }: PageProps<"/tickets">) {
           Ticket #{created} created. The &quot;When a ticket is created&quot; flow ran, see Flow runs.
         </p>
       )}
-      <div className="mb-4 flex flex-wrap gap-2 text-sm">
-        <Link href="/tickets" className={`rounded-full border px-3 py-1 ${!status ? "bg-indigo-600 text-white" : "bg-white"}`}>All</Link>
-        {statuses.map((s) => (
-          <Link key={s} href={`/tickets?status=${s}`} className={`rounded-full border px-3 py-1 ${status === s ? "bg-indigo-600 text-white" : "bg-white"}`}>
-            {label(s)}
-          </Link>
-        ))}
-      </div>
+
+      <form method="get" className="mb-4 grid gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+        <input
+          name="q" type="search" defaultValue={filters.q} aria-label="Search tickets"
+          placeholder="Search number, title, description, requester"
+          className={`${inputCls} sm:col-span-2`}
+        />
+        <select name="status" defaultValue={filters.status ?? ""} aria-label="Status" className={inputCls}>
+          <option value="">Any status</option>
+          {STATUSES.map((s) => <option key={s} value={s}>{label(s)}</option>)}
+        </select>
+        <select name="priority" defaultValue={filters.priority ?? ""} aria-label="Priority" className={inputCls}>
+          <option value="">Any priority</option>
+          {PRIORITIES.map((p) => <option key={p} value={p}>{label(p)}</option>)}
+        </select>
+        <select name="category" defaultValue={filters.categoryId ?? ""} aria-label="Category" className={inputCls}>
+          <option value="">Any category</option>
+          {db.categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+        {staff && (
+          <select name="assignee" defaultValue={filters.assignee ?? ""} aria-label="Assignee" className={inputCls}>
+            <option value="">Any assignee</option>
+            <option value="none">Unassigned</option>
+            {db.users.filter((u) => u.role !== "employee").map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+        )}
+        <select name="sort" defaultValue={filters.sort ?? "newest"} aria-label="Sort by" className={inputCls}>
+          {SORTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+        <label className="flex items-center gap-2 text-sm text-slate-600">
+          <input type="checkbox" name="overdue" value="1" defaultChecked={filters.overdue} /> Overdue only
+        </label>
+        <div className="flex gap-2 sm:col-span-2 lg:col-span-1 lg:justify-end">
+          <button className={btnCls}>Apply</button>
+          {filtered && <Link href="/tickets" className={`${btnGhostCls} inline-flex items-center`}>Clear</Link>}
+        </div>
+      </form>
+
+      <p className="mb-2 text-sm text-slate-500" aria-live="polite">
+        {tickets.length} of {visible.length} tickets{filtered && " match your filters"}
+      </p>
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 text-slate-500">
@@ -60,7 +114,7 @@ export default async function Tickets({ searchParams }: PageProps<"/tickets">) {
                 </tr>
               );
             })}
-            {!tickets.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">No tickets</td></tr>}
+            {!tickets.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">No tickets found</td></tr>}
           </tbody>
         </table>
       </div>
