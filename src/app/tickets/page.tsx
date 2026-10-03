@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { readDb } from "@/lib/dataverse/store";
-import { filterTickets, isOverdue, type TicketFilters } from "@/lib/dataverse/queries";
+import { filterTickets, isOverdue, paginate, type TicketFilters } from "@/lib/dataverse/queries";
 import { canWorkTickets, currentUser } from "@/lib/session";
 import { Badge, PageTitle, btnCls, btnGhostCls, fmt, inputCls, label, priorityTone, statusTone } from "@/components/ui";
 import { PRIORITIES, type TicketStatus } from "@/lib/dataverse/types";
@@ -33,7 +33,16 @@ export default async function Tickets({ searchParams }: PageProps<"/tickets">) {
     sort: pick(one(sp.sort), SORTS.map((s) => s[0])),
   };
   const visible = staff ? db.tickets : db.tickets.filter((t) => t.requesterId === user.id);
-  const tickets = filterTickets(db, visible, filters);
+  const matches = filterTickets(db, visible, filters);
+  const paged = paginate(matches, Number(one(sp.page)));
+  const tickets = paged.items;
+  // Page links keep the current filters but drop the one-time "created" banner.
+  const pageHref = (p: number) => {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(sp)) if (typeof v === "string" && k !== "page" && k !== "created") params.set(k, v);
+    params.set("page", String(p));
+    return `/tickets?${params}`;
+  };
   const filtered = Boolean(filters.q || filters.status || filters.priority || filters.categoryId || filters.assignee || filters.overdue);
   const name = (id: string | null) => db.users.find((u) => u.id === id)?.name ?? "Unassigned";
 
@@ -87,7 +96,7 @@ export default async function Tickets({ searchParams }: PageProps<"/tickets">) {
       </form>
 
       <p className="mb-2 text-sm text-slate-500" aria-live="polite">
-        {tickets.length} of {visible.length} tickets{filtered && " match your filters"}
+        {paged.total} of {visible.length} tickets{filtered && " match your filters"}
       </p>
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-left text-sm">
@@ -117,6 +126,13 @@ export default async function Tickets({ searchParams }: PageProps<"/tickets">) {
           </tbody>
         </table>
       </div>
+      {paged.pages > 1 && (
+        <nav aria-label="Pagination" className="mt-4 flex items-center justify-between text-sm">
+          {paged.page > 1 ? <Link href={pageHref(paged.page - 1)} className={btnGhostCls}>Previous</Link> : <span />}
+          <span className="text-slate-500">Page {paged.page} of {paged.pages}</span>
+          {paged.page < paged.pages ? <Link href={pageHref(paged.page + 1)} className={btnGhostCls}>Next</Link> : <span />}
+        </nav>
+      )}
     </>
   );
 }
