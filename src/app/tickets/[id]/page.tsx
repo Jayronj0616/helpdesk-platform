@@ -51,6 +51,12 @@ export default async function TicketDetail({ params }: PageProps<"/tickets/[id]"
                 <option value="">Unassigned</option>
                 {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
+              <select name="assetId" defaultValue={t.assetId ?? ""} className={inputCls} aria-label="Related asset">
+                <option value="">No related asset</option>
+                {db.assets.filter((a) => a.status !== "retired" || a.id === t.assetId).map((a) => (
+                  <option key={a.id} value={a.id}>{a.tag} - {a.name}</option>
+                ))}
+              </select>
               <button className={btnCls}>Save</button>
             </form>
           ) : (

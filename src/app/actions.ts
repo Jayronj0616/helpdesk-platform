@@ -54,6 +54,7 @@ export async function updateTicket(formData: FormData) {
   const id = String(formData.get("id"));
   const status = String(formData.get("status")) as TicketStatus;
   const assigneeId = String(formData.get("assigneeId") ?? "");
+  const assetId = String(formData.get("assetId") ?? "");
   if (!STATUSES.includes(status)) return;
 
   mutate((db) => {
@@ -63,6 +64,16 @@ export async function updateTicket(formData: FormData) {
     if (t.status !== status) addSystemEntry(db, t.id, `${user.name} changed status from ${label(t.status)} to ${label(status)}`);
     if ((t.assigneeId ?? "") !== assigneeId) {
       addSystemEntry(db, t.id, `${user.name} changed assignee from ${who(t.assigneeId)} to ${who(assigneeId || null)}`);
+    }
+    // The form only sends assetId for staff; ignore unknown ids rather than store a dangling link.
+    if (formData.has("assetId")) {
+      const asset = db.assets.find((a) => a.id === assetId);
+      const nextAssetId = asset?.id ?? null;
+      if (t.assetId !== nextAssetId) {
+        const tag = (id: string | null) => db.assets.find((a) => a.id === id)?.tag ?? "none";
+        addSystemEntry(db, t.id, `${user.name} changed related asset from ${tag(t.assetId)} to ${tag(nextAssetId)}`);
+        t.assetId = nextAssetId;
+      }
     }
     t.status = status;
     t.assigneeId = assigneeId || null;
