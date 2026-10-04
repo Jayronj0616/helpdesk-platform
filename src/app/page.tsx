@@ -1,12 +1,13 @@
 import { readDb } from "@/lib/dataverse/store";
 import { isOpen, isOverdue, ticketsPerDay } from "@/lib/dataverse/queries";
-import { currentUser, canWorkTickets } from "@/lib/session";
+import { requireUser, canWorkTickets } from "@/lib/session";
 import { Card, PageTitle, label } from "@/components/ui";
 
 // Dashboard page: the Power BI report equivalent. Employees only see their own tickets
 // (row-level security); agents and managers see everything.
 export default async function Dashboard() {
-  const [db, user] = [readDb(), await currentUser()];
+  const user = await requireUser();
+  const db = await readDb();
   const tickets = canWorkTickets(user) ? db.tickets : db.tickets.filter((t) => t.requesterId === user.id);
   const requests = canWorkTickets(user) ? db.assetRequests : db.assetRequests.filter((r) => r.requesterId === user.id);
   const open = tickets.filter(isOpen);
