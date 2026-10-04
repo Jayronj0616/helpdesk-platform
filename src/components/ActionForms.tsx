@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { changePassword } from "@/app/auth-actions";
 import { createUserAction, resetUserPasswordAction } from "@/app/admin-actions";
-import { createAssetAction, updateProfileAction } from "@/app/actions";
+import { createAssetAction, rateTicketAction, updateProfileAction } from "@/app/actions";
 import { btnCls, btnGhostCls, inputCls, label } from "@/components/ui";
 import { ROLES } from "@/lib/dataverse/types";
 import type { FormState } from "@/lib/form-state";
@@ -91,6 +91,33 @@ export function ProfileForm({ name, department }: { name: string; department: st
       <Field id="pf-name" text="Full name"><input id="pf-name" name="name" required maxLength={80} defaultValue={state.values?.name ?? name} className={inputCls} /></Field>
       <Field id="pf-dept" text="Department"><input id="pf-dept" name="department" maxLength={60} defaultValue={state.values?.department ?? department} className={inputCls} /></Field>
       <button className={btnCls} disabled={pending}>{pending ? "Saving..." : "Save profile"}</button>
+    </form>
+  );
+}
+
+export function RatingForm({ ticketId }: { ticketId: string }) {
+  const [state, action, pending] = useActionState(rateTicketAction, initial);
+  return (
+    <form action={action} className="space-y-3">
+      <Notice state={state} />
+      <input type="hidden" name="ticketId" value={ticketId} />
+      <fieldset>
+        <legend className="mb-1 text-sm font-medium">How well did we solve it?</legend>
+        <div className="flex flex-wrap gap-3">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <label key={n} className="flex items-center gap-1 text-sm">
+              <input type="radio" name="rating" value={n} required /> {n}
+              <span className="sr-only"> out of 5</span>
+            </label>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-slate-500">1 is poor, 5 is excellent.</p>
+      </fieldset>
+      <div>
+        <label htmlFor="rating-comment" className="mb-1 block text-sm font-medium">Anything to add? (optional)</label>
+        <textarea id="rating-comment" name="comment" rows={2} maxLength={500} defaultValue={state.values?.comment} className={inputCls} />
+      </div>
+      <button className={btnCls} disabled={pending}>{pending ? "Sending..." : "Send feedback"}</button>
     </form>
   );
 }
