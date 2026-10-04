@@ -97,5 +97,8 @@ export const SLA_HOURS: Record<Priority, number> = {
   low: 72,
 };
 
+export const ROLES: Role[] = ["employee", "agent", "manager"];
+export const ASSET_STATUSES: AssetStatus[] = ["available", "assigned", "repair", "retired"];
+
 // Lowest to highest. Use this for dropdown order and ranking.
 export const PRIORITIES: Priority[] = ["low", "medium", "high", "critical"];
