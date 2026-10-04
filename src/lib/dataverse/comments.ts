@@ -15,9 +15,11 @@ export function addComment(
   db.comments.push({ id: newId("m"), kind: "comment", createdAt: new Date().toISOString(), ...input });
 }
 
-// Employees never see internal notes.
-export function visibleComments(db: Database, ticketId: string, canSeeInternal: boolean): Comment[] {
-  return db.comments
-    .filter((c) => c.ticketId === ticketId && (canSeeInternal || !c.internal))
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+// Employees never see internal notes. Every place that shows comments goes through this.
+export function filterVisible(comments: Comment[], canSeeInternal: boolean): Comment[] {
+  return comments.filter((c) => canSeeInternal || !c.internal).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+export function visibleComments(db: Pick<Database, "comments">, ticketId: string, canSeeInternal: boolean): Comment[] {
+  return filterVisible(db.comments.filter((c) => c.ticketId === ticketId), canSeeInternal);
 }
