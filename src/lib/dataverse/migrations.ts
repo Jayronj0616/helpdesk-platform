@@ -19,6 +19,15 @@ export const MIGRATIONS: Migration[] = [
     description: "Add users.active so accounts can be deactivated instead of deleted",
     statements: ["ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1"],
   },
+  {
+    version: 3,
+    description: "Add customer satisfaction ratings to tickets",
+    statements: [
+      "ALTER TABLE tickets ADD COLUMN rating INTEGER CHECK (rating BETWEEN 1 AND 5)",
+      "ALTER TABLE tickets ADD COLUMN rating_comment TEXT",
+      "ALTER TABLE tickets ADD COLUMN rated_at TEXT",
+    ],
+  },
 ];
 
 export const LATEST_VERSION = Math.max(1, ...MIGRATIONS.map((m) => m.version));
