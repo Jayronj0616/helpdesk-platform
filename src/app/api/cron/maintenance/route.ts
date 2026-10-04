@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { mutate } from "@/lib/dataverse/store";
 import { runMaintenance } from "@/lib/flows";
+import { deliverPending } from "@/lib/notifications/deliver";
 
 // Runs the time-based flows (escalate overdue tickets, close old resolved ones) on a schedule. Vercel Cron
 // calls this with "Authorization: Bearer <CRON_SECRET>" when the CRON_SECRET environment variable is set
@@ -21,5 +22,7 @@ export async function GET(request: Request) {
   }
 
   const result = await mutate((db) => runMaintenance(db));
-  return NextResponse.json({ status: "ok", ...result }, { headers: { "Cache-Control": "no-store" } });
+  // Send what the flows just queued, and retry anything that failed earlier.
+  const emails = await deliverPending(50);
+  return NextResponse.json({ status: "ok", ...result, emails }, { headers: { "Cache-Control": "no-store" } });
 }
