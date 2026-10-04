@@ -26,7 +26,7 @@ export function onTicketCreated(db: Database, ticket: Ticket) {
   ticket.dueAt = due.toISOString();
   actions.push(`Set SLA due date to ${SLA_HOURS[ticket.priority]}h from creation`);
 
-  const agents = db.users.filter((u) => u.role === "agent");
+  const agents = db.users.filter((u) => u.role === "agent" && u.active);
   const load = (id: string) => db.tickets.filter((t) => t.assigneeId === id && OPEN.includes(t.status)).length;
   const pick = [...agents].sort((a, b) => load(a.id) - load(b.id))[0];
   if (pick) {
@@ -39,7 +39,7 @@ export function onTicketCreated(db: Database, ticket: Ticket) {
   addSystemEntry(db, ticket.id, `Ticket created. SLA due in ${SLA_HOURS[ticket.priority]}h`);
 
   if (ticket.priority === "critical") {
-    const manager = db.users.find((u) => u.role === "manager");
+    const manager = db.users.find((u) => u.role === "manager" && u.active);
     if (manager) actions.push(`Sent Teams alert to ${manager.name}: critical ticket #${ticket.number}`);
   }
 
@@ -55,7 +55,7 @@ export function escalateOverdue(db: Database): number {
   const now = Date.now();
   const order: Ticket["priority"][] = ["low", "medium", "high", "critical"];
   const overdue = db.tickets.filter((t) => OPEN.includes(t.status) && !t.escalated && new Date(t.dueAt).getTime() < now);
-  const manager = db.users.find((u) => u.role === "manager");
+  const manager = db.users.find((u) => u.role === "manager" && u.active);
   const actions: string[] = [];
 
   for (const t of overdue) {

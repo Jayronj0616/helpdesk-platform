@@ -57,8 +57,8 @@ export async function updateTicket(formData: FormData) {
   await mutate((db) => {
     const t = db.tickets.find((x) => x.id === id);
     if (!t) return;
-    // Only IT staff can be assignees; ignore anything else rather than store a bad link.
-    const assignee = db.users.find((u) => u.id === assigneeId && u.role !== "employee");
+    // Only active IT staff can be assignees; ignore anything else rather than store a bad link.
+    const assignee = db.users.find((u) => u.id === assigneeId && u.role !== "employee" && u.active);
     const nextAssigneeId = assignee?.id ?? null;
     const who = (uid: string | null) => db.users.find((u) => u.id === uid)?.name ?? "Unassigned";
     if (t.status !== status) addSystemEntry(db, t.id, `${user.name} changed status from ${label(t.status)} to ${label(status)}`);

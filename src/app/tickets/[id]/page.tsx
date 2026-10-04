@@ -16,7 +16,8 @@ export default async function TicketDetail({ params }: PageProps<"/tickets/[id]"
 
   const name = (uid: string | null) => db.users.find((u) => u.id === uid)?.name ?? "Unassigned";
   const asset = db.assets.find((a) => a.id === t.assetId);
-  const agents = db.users.filter((u) => u.role !== "employee");
+  // Active staff, plus the current assignee even if they have since been deactivated, so the form still shows them.
+  const agents = db.users.filter((u) => u.role !== "employee" && (u.active || u.id === t.assigneeId));
   const editable = canWorkTickets(user);
   const thread = visibleComments(db, t.id, editable);
 
