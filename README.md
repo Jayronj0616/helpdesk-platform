@@ -17,6 +17,8 @@ An IT helpdesk and asset tracker built with Next.js. It is structured like a Mic
 - **Flow: Escalate overdue tickets**: bumps the priority of tickets past their SLA (manager only).
 - **Flow: Asset request approval**: managers approve or reject. Approving assigns an available asset from stock.
 - **Flow runs**: every run and the actions it took.
+- **Assets**: IT staff add assets and change status and holder.
+- **Users** (managers): create staff accounts, change roles, reset passwords. **Account**: everyone can change their own password.
 
 Sign in as any demo account (listed on the login page) to try each role: employee, agent or manager. You can also register a new employee account.
 
@@ -32,6 +34,10 @@ npm run dev
 ```
 
 Open http://localhost:3000. The SQLite database (`data/helpdesk.db`) is created and seeded on first use. Demo accounts and their password are shown on the login page. Copy `.env.example` to `.env.local` to change the database, the demo password, or to turn demo mode off. Run `npm test` for the test suite.
+
+## Deploy
+
+[docs/DEPLOY.md](docs/DEPLOY.md) covers Vercel with a hosted Turso database (a local SQLite file cannot persist on Vercel), demo mode versus real use, and the first admin account.
 
 ## Build the real thing
 
