@@ -19,6 +19,10 @@ src/
     admin-actions.ts      Manager-only: create user, change role, reset a user's password
     login/page.tsx        Sign in, plus demo account hints when DEMO_MODE is on
     register/page.tsx     Self-registration (always creates an employee)
+    forgot-password/      Request a reset link (404 when email is not available)
+    reset-password/[token]/  Choose a new password from an emailed link
+    dev/outbox/page.tsx   Development mail catcher (404 in production or with a provider)
+    api/health/route.ts   Public health check for monitors and post-deploy checks
     account/page.tsx      Own profile and password change
     admin/users/page.tsx  User administration (managers only, 404 for everyone else)
     tickets/
@@ -31,6 +35,7 @@ src/
   components/
     Nav.tsx               Top nav with the signed-in user and Sign out
     AuthForms.tsx         Client components: LoginForm, RegisterForm (useActionState)
+    ResetForms.tsx        Client forms: ForgotPasswordForm, ResetPasswordForm
     ActionForms.tsx       Client forms: CreateUserForm, ResetPasswordForm, AddAssetForm, ChangePasswordForm
     ui.tsx                Badge, Card, PageTitle, class constants, label(), fmt()
   lib/
@@ -48,15 +53,20 @@ src/
       password.ts         scrypt hash and verify
       credentials.ts      authenticate, createAccount (any role, admin only), registerUser (employee), setPassword, changeOwnPassword
       sessions.ts         createSession, getSessionUser, destroySession, destroyUserSessions (hashed tokens in SQL)
+      reset.ts            createResetToken, isResetTokenValid, consumeResetToken (single use, hashed, expiring)
       rate-limit.ts       Database-backed sliding-window limiter (hashed keys) for login, register, password change
     flows/index.ts        Automation flows (Power Automate analog). Each logs a FlowRun.
+    mail.ts               sendMail (Resend provider, dev outbox, or off), mailMode, appUrl, passwordResetAvailable
     session.ts            currentUser, requireUser, startSession/endSession (cookie), role checks
     config.ts             DEMO_MODE, DEMO_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD (from env)
     form-state.ts         FormState type for useActionState actions
 e2e/                      Playwright end-to-end tests (real Chrome, real dev server, throwaway database)
 .github/workflows/ci.yml  CI: lint, types, unit tests, build; and the e2e tests on a runner with Chrome
+playwright.screenshots.config.ts  `npm run screenshots`: regenerates docs/screenshots/*.png from a fresh demo
+e2e/screenshots/         The capture script (`*.shots.ts`, not part of the e2e run)
+docs/screenshots/         Images shown in the README
 playwright.config.ts      Playwright config: port 3210, temp SQLite file, one worker
-tests/                    Vitest: queries, comments, flows, admin rules (pure); password, db, accounts, production seed (real SQLite files: password, db, accounts, rate-limit, migrations, production seed)
+tests/                    Vitest: queries, comments, flows, admin rules (pure); password, db, accounts, production seed (real SQLite files: password, db, accounts, rate-limit, migrations, production seed, reset, health; mail with stubbed env)
 vitest.config.mts         Test config (resolves the @ alias)
 .env.example              DATABASE_URL, DATABASE_AUTH_TOKEN, DEMO_MODE, DEMO_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD
 docs/

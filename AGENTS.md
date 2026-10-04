@@ -21,6 +21,7 @@ IT helpdesk and asset tracker in Next.js 16 + TypeScript + Tailwind, structured 
 - All mutations go in `src/app/actions.ts` (auth in `auth-actions.ts`). Each action calls `requireUser()`, re-checks the role, and re-validates every id and length against the database inside `mutate`.
 - Every page calls `requireUser()` first. `readDb()` and `mutate()` are async, so always `await` them.
 - Anything under `admin-actions.ts` or `/admin` must be manager-only: check `canApprove` on the server, using the role stored in the database. Accounts are only created through `createAccount`, and public registration must keep passing the `employee` role.
+- Email goes through `sendMail` in `lib/mail.ts` only. Password reset links must be built from `appUrl()` (never trust the Host header in production), and the forgot-password response must stay identical for known and unknown addresses.
 - Password hashes and session tokens live in `auth_*` tables only; never add them to the `Database` type or render them.
 - Always render comments through `visibleComments()` so internal notes never reach employees.
 - No `Date.now()` in components; use `src/lib/dataverse/queries.ts`.

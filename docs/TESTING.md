@@ -22,6 +22,9 @@ Most logic is pure functions over a `Database`, so those tests build a fresh `se
 | `tests/flows.test.ts` | `onTicketCreated`, `escalateOverdue`, `onAssetRequestDecided` |
 | `tests/password.test.ts` | scrypt hash and verify (random salt, tamper and malformed rejection) |
 | `tests/rate-limit.test.ts` | Database-backed limiter: window, independent keys, reset, shared across instances, only hashed keys stored, old attempts purged |
+| `tests/reset.test.ts` | Reset tokens: unknown and deactivated accounts get none, stored hashed, a new request replaces the old link, expiry, single use even under a race, weak password does not burn the link, cancelled by other password changes, dead if the account is deactivated afterwards, signs out all sessions |
+| `tests/mail.test.ts` | `mailMode` and `appUrl` for every combination (including never trusting the request host in production), `passwordResetAvailable`, sending through Resend (bearer key, body), provider errors without leaking the key, dev outbox, refusing to send in production with no provider |
+| `tests/health.test.ts` | Health endpoint: ok, no-store, and a bare 503 with no details on failure |
 | `tests/migrations.test.ts` | Upgrading a version 1 database keeps data, safe to re-run, two instances migrating at once, fresh databases are stamped without migrating |
 | `tests/admin.test.ts` | `changeUserRole` (promote, self-change blocked, non-manager blocked, demotion unassigns open tickets with audit), `setUserActive` (unassigns, self blocked, inactive manager blocked), `createAsset`, `updateAsset`, `requestTypes` |
 | `tests/accounts.test.ts` | deactivated accounts cannot sign in and lose their sessions immediately, `createAccount` with a role, `registerUser` stays employee-only, `setPassword` (signs the user out, leaves others signed in), `changeOwnPassword` (current password required, keeps only the current session) |
@@ -37,10 +40,12 @@ Playwright drives the **already installed Chrome** (no browser download; `E2E_BR
 
 | File | Covers |
 |---|---|
-| `01-auth` | Signed-out redirects, forged cookie, generic login error that keeps the email, sign in and out, HttpOnly SameSite=Lax cookie, registration (employee only, duplicate rejected) |
+| `01-auth` | Security headers, health endpoint, signed-out redirects, forged cookie, generic login error that keeps the email, sign in and out, HttpOnly SameSite=Lax cookie, registration (employee only, duplicate rejected) |
 | `02-employee` | 404 on other people's tickets and the admin page, own tickets only, internal notes hidden, creation flow (SLA, auto-assignment, audit trail, flow log), commenting, search and filters, asset requests |
 | `03-staff-and-manager` | Agent: all tickets, internal notes (hidden from the requester), audit entries, add asset (uppercased tag, duplicate rejected, status edit), cannot approve. Manager: approve assigns an asset, escalation, reject |
 | `04-admin` | Create an agent who can sign in, demote (unassigns tickets), deactivate and reactivate, session ended immediately on deactivation, password reset signs the user out, own role locked |
+| `05-accessibility` | axe (WCAG 2 A and AA) on public, employee, staff and manager pages with no serious or critical violations, plus a keyboard-only sign-in |
+| `05-password-reset` | Forgot-password link, identical answer for real and unknown emails (only the real one is emailed), the whole reset through the dev outbox, other sessions signed out, link single-use, made-up link |
 | `05-account` | Change own password (current one required, old one dies, other devices signed out) |
 | `06-reset` | Runs last: reset restores the seed, removes registered users, restores demo passwords, keeps the manager signed in |
 
@@ -75,6 +80,12 @@ Demo accounts: maria@contoso.test and carlo@contoso.test (employees), ana@contos
 
 ## Last manual verification
 The pre-auth flows (ticket creation, comments, approval, escalation, reset, pagination) were run in a real browser on 2026-10-03. With real authentication and SQLite, on 2026-10-04 (and the admin features, password change and asset management later the same day): wrong password (generic error, email kept), sign in, HttpOnly session cookie, sign out, signed-out redirects, forged cookie rejected, registration, ticket creation with flow assignment, manager approve, escalation and reset (registered user removed, manager session kept).
+
+## Screenshots
+`npm run screenshots` signs in as each role against a fresh demo database and rewrites `docs/screenshots/*.png` (also uses the installed Chrome). It creates a ticket, adds a comment, approves a request and runs escalation first, so the pictures show real data and a populated flow log. Run it after changing the look of a page, then commit the images.
+
+## Production-mode check
+The dev server hides some production behaviour. After changing anything about email, headers or config, build and start it for real: `npm run build`, then `DATABASE_URL=file:... npx next start -p 3220`, and confirm `/api/health` is 200, `/forgot-password` and `/dev/outbox` are 404 (no provider), and the login page has no "Forgot your password?" link. Kill any server already on the port first; a leftover process answers instead and gives misleading results.
 
 ## CI
 `.github/workflows/ci.yml` runs two jobs on every push to `master` and every pull request: lint, types, unit tests and build; and the end-to-end tests (GitHub's Ubuntu runners include Chrome). Failed e2e runs upload Playwright traces as an artifact.
