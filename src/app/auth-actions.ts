@@ -26,13 +26,13 @@ export async function login(_prev: AuthState, formData: FormData): Promise<AuthS
   if (!email || !password) return { error: "Enter your email and password.", values };
 
   const key = await clientKey(email);
-  if (!loginLimiter.attempt(key)) return { error: "Too many attempts. Try again in 15 minutes.", values };
+  if (!(await loginLimiter.attempt(key))) return { error: "Too many attempts. Try again in 15 minutes.", values };
 
   const user = await authenticate(email, password);
   // Same message for unknown email and wrong password, so accounts cannot be enumerated.
   if (!user) return { error: "Invalid email or password.", values };
 
-  loginLimiter.reset(key);
+  await loginLimiter.reset(key);
   await startSession(user.id);
   redirect("/");
 }
@@ -44,7 +44,7 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
     department: String(formData.get("department") ?? ""),
   };
   const key = `register|${(await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local"}`;
-  if (!loginLimiter.attempt(key)) return { error: "Too many attempts. Try again in 15 minutes.", values };
+  if (!(await loginLimiter.attempt(key))) return { error: "Too many attempts. Try again in 15 minutes.", values };
 
   const result = await registerUser({ ...values, password: String(formData.get("password") ?? "") });
   if (!result.ok) return { error: result.error, values };
@@ -62,7 +62,7 @@ export async function changePassword(_prev: FormState, formData: FormData): Prom
   const user = await requireUser();
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   // Same limiter as sign-in: this endpoint also tells an attacker whether a guess of the current password was right.
-  if (!loginLimiter.attempt(`password|${user.id}`)) return { error: "Too many attempts. Try again in 15 minutes." };
+  if (!(await loginLimiter.attempt(`password|${user.id}`))) return { error: "Too many attempts. Try again in 15 minutes." };
 
   const result = await changeOwnPassword(
     user.id,
@@ -72,6 +72,6 @@ export async function changePassword(_prev: FormState, formData: FormData): Prom
   );
   if (!result.ok) return { error: result.error };
 
-  loginLimiter.reset(`password|${user.id}`);
+  await loginLimiter.reset(`password|${user.id}`);
   return { message: "Password changed. Your other devices were signed out." };
 }
