@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { seedDatabase } from "@/lib/dataverse/seed";
-import { addComment, addSystemEntry, visibleComments } from "@/lib/dataverse/comments";
+import { addComment, addSystemEntry, filterVisible, visibleComments } from "@/lib/dataverse/comments";
 
 describe("visibleComments", () => {
   const db = seedDatabase();
@@ -41,5 +41,26 @@ describe("adding entries", () => {
     const db = seedDatabase();
     addSystemEntry(db, "t5", "Status changed");
     expect(db.comments.at(-1)).toMatchObject({ kind: "system", authorId: null, internal: false, body: "Status changed" });
+  });
+});
+
+describe("filterVisible", () => {
+  const db = seedDatabase();
+  const thread = db.comments.filter((c) => c.ticketId === "t1");
+
+  it("removes internal notes for employees and keeps everything for staff", () => {
+    expect(filterVisible(thread, false).some((c) => c.internal)).toBe(false);
+    expect(filterVisible(thread, true)).toHaveLength(thread.length);
+  });
+
+  it("sorts oldest first whatever order the comments arrive in, without changing the input", () => {
+    const reversed = [...thread].reverse();
+    const out = filterVisible(reversed, true);
+    expect(out.map((c) => c.createdAt)).toEqual([...out.map((c) => c.createdAt)].sort());
+    expect(reversed.map((c) => c.id)).toEqual([...thread].reverse().map((c) => c.id));
+  });
+
+  it("agrees with visibleComments, which is built on it", () => {
+    expect(visibleComments(db, "t1", false)).toEqual(filterVisible(thread, false));
   });
 });
