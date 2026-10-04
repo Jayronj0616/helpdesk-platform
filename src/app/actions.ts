@@ -6,7 +6,7 @@ import { mutate, newId, resetDb } from "@/lib/dataverse/store";
 import { PRIORITIES, TICKET_STATUSES, type Priority, type TicketStatus } from "@/lib/dataverse/types";
 import { DEMO_MODE } from "@/lib/config";
 import { canApprove, canWorkTickets, requireUser } from "@/lib/session";
-import { escalateOverdue, onAssetRequestDecided, onTicketCreated } from "@/lib/flows";
+import { closeStaleResolved, escalateOverdue, onAssetRequestDecided, onTicketCreated } from "@/lib/flows";
 import { addComment, addSystemEntry } from "@/lib/dataverse/comments";
 import { label } from "@/components/ui";
 import { createAsset, requestTypes, updateAsset, updateProfile } from "@/lib/dataverse/admin";
@@ -133,6 +133,13 @@ export async function decideRequest(formData: FormData) {
     req.decidedAt = new Date().toISOString();
     onAssetRequestDecided(db, req);
   });
+  revalidatePath("/", "layout");
+}
+
+export async function runCloseResolved() {
+  const user = await requireUser();
+  if (!canApprove(user)) return;
+  await mutate((db) => closeStaleResolved(db));
   revalidatePath("/", "layout");
 }
 

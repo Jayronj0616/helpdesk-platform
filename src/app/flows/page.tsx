@@ -1,4 +1,4 @@
-import { resetDemoData, runEscalation } from "@/app/actions";
+import { resetDemoData, runCloseResolved, runEscalation } from "@/app/actions";
 import { readDb } from "@/lib/dataverse/store";
 import { DEMO_MODE } from "@/lib/config";
 import { canApprove, requireUser } from "@/lib/session";
@@ -15,6 +15,9 @@ export default async function Flows() {
       <div className="mb-6 flex flex-wrap gap-3">
         <form action={runEscalation}>
           <button className={btnCls} disabled={!manager}>Run &quot;Escalate overdue tickets&quot;</button>
+        </form>
+        <form action={runCloseResolved}>
+          <button className={btnCls} disabled={!manager}>Run &quot;Close resolved tickets&quot;</button>
         </form>
         {DEMO_MODE && (
           <form action={resetDemoData}>
