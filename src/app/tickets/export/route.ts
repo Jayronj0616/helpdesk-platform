@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   const person = (id: string | null) => db.users.find((u) => u.id === id)?.name ?? "";
 
   const csv = toCsv(
-    ["Number", "Title", "Description", "Requester", "Assignee", "Category", "Priority", "Status", "Created", "Due", "Resolved", "Escalated", "Asset"],
+    ["Number", "Title", "Description", "Requester", "Assignee", "Category", "Priority", "Status", "Created", "Due", "Resolved", "Escalated", "Asset", "Rating", "Rating comment"],
     tickets.map((t) => [
       t.number,
       t.title,
@@ -35,6 +35,8 @@ export async function GET(request: Request) {
       iso(t.resolvedAt),
       t.escalated ? "yes" : "no",
       db.assets.find((a) => a.id === t.assetId)?.tag ?? "",
+      t.rating,
+      t.ratingComment,
     ]),
   );
 

@@ -46,7 +46,7 @@ describe("GET /tickets/export", () => {
     expect(res.headers.get("Cache-Control")).toBe("no-store");
 
     const lines = (await res.text()).trim().split("\r\n");
-    expect(lines[0].replace("\uFEFF", "")).toBe("Number,Title,Description,Requester,Assignee,Category,Priority,Status,Created,Due,Resolved,Escalated,Asset");
+    expect(lines[0].replace("\uFEFF", "")).toBe("Number,Title,Description,Requester,Assignee,Category,Priority,Status,Created,Due,Resolved,Escalated,Asset,Rating,Rating comment");
     expect(lines).toHaveLength(1 + 6);
     expect(lines.find((l) => l.startsWith("1001,"))).toContain("Laptop will not boot");
   });
