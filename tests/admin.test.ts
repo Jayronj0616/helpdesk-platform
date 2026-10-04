@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { seedDatabase } from "@/lib/dataverse/seed";
-import { changeUserRole, createAsset, requestTypes, setUserActive, updateAsset } from "@/lib/dataverse/admin";
+import { changeUserRole, createAsset, requestTypes, setUserActive, updateAsset, updateProfile } from "@/lib/dataverse/admin";
 
 const asset = (over: Partial<Parameters<typeof createAsset>[1]> = {}) => ({ tag: "LT-0042", name: "ThinkPad X1", type: "Laptop", purchasedAt: "2026-01-15", ...over });
 
@@ -152,5 +152,42 @@ describe("requestTypes", () => {
     const types = requestTypes(db);
     expect(types).toContain("Docking station");
     expect(types.filter((t) => t.toLowerCase() === "laptop")).toEqual(["Laptop"]);
+  });
+});
+
+describe("updateProfile", () => {
+  it("changes the name and department, trimming whitespace", () => {
+    const db = seedDatabase();
+    expect(updateProfile(db, "u1", { name: "  Maria S. Santos ", department: " Accounting " })).toMatchObject({ ok: true, name: "Maria S. Santos", department: "Accounting" });
+    expect(db.users.find((u) => u.id === "u1")).toMatchObject({ name: "Maria S. Santos", department: "Accounting" });
+  });
+
+  it("defaults an empty department", () => {
+    const db = seedDatabase();
+    updateProfile(db, "u1", { name: "Maria", department: "  " });
+    expect(db.users.find((u) => u.id === "u1")!.department).toBe("General");
+  });
+
+  it("never touches email, role or active", () => {
+    const db = seedDatabase();
+    const before = { ...db.users.find((u) => u.id === "u3")! };
+    updateProfile(db, "u3", { name: "Ana C.", department: "IT" });
+    const after = db.users.find((u) => u.id === "u3")!;
+    expect({ email: after.email, role: after.role, active: after.active }).toEqual({ email: before.email, role: before.role, active: before.active });
+  });
+
+  it("rejects an empty or very long name and a very long department", () => {
+    const db = seedDatabase();
+    expect(updateProfile(db, "u1", { name: "   ", department: "IT" })).toMatchObject({ ok: false });
+    expect(updateProfile(db, "u1", { name: "x".repeat(81), department: "IT" })).toMatchObject({ ok: false });
+    expect(updateProfile(db, "u1", { name: "Maria", department: "d".repeat(61) })).toMatchObject({ ok: false });
+    expect(db.users.find((u) => u.id === "u1")!.name).toBe("Maria Santos");
+  });
+
+  it("refuses unknown and deactivated accounts", () => {
+    const db = seedDatabase();
+    db.users.find((u) => u.id === "u2")!.active = false;
+    expect(updateProfile(db, "ghost", { name: "X", department: "Y" })).toMatchObject({ ok: false });
+    expect(updateProfile(db, "u2", { name: "X", department: "Y" })).toMatchObject({ ok: false });
   });
 });
