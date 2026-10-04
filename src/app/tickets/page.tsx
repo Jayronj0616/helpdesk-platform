@@ -1,20 +1,11 @@
 import Link from "next/link";
 import { readDb } from "@/lib/dataverse/store";
-import { filterTickets, isOverdue, paginate, type TicketFilters } from "@/lib/dataverse/queries";
+import { SORTS, filterTickets, hasFilters, isOverdue, paginate, parseTicketFilters } from "@/lib/dataverse/queries";
 import { canWorkTickets, requireUser } from "@/lib/session";
 import { Badge, PageTitle, btnCls, btnGhostCls, fmt, inputCls, label, priorityTone, statusTone } from "@/components/ui";
-import { PRIORITIES, type TicketStatus } from "@/lib/dataverse/types";
-
-const STATUSES: TicketStatus[] = ["new", "in_progress", "waiting", "resolved", "closed"];
-const SORTS = [
-  ["newest", "Newest first"],
-  ["oldest", "Oldest first"],
-  ["due", "Due soonest"],
-  ["priority", "Highest priority"],
-] as const;
+import { PRIORITIES, TICKET_STATUSES } from "@/lib/dataverse/types";
 
 const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : undefined);
-const pick = <T extends string>(v: string | undefined, allowed: readonly T[]) => allowed.find((a) => a === v);
 
 // Ticket list: the model-driven app "view". All filters live in the URL (GET form), so views are shareable.
 export default async function Tickets({ searchParams }: PageProps<"/tickets">) {
@@ -24,15 +15,7 @@ export default async function Tickets({ searchParams }: PageProps<"/tickets">) {
   const db = await readDb();
   const staff = canWorkTickets(user);
 
-  const filters: TicketFilters = {
-    q: one(sp.q),
-    status: pick(one(sp.status), STATUSES),
-    priority: pick(one(sp.priority), PRIORITIES),
-    categoryId: db.categories.find((c) => c.id === one(sp.category))?.id,
-    assignee: one(sp.assignee),
-    overdue: one(sp.overdue) === "1",
-    sort: pick(one(sp.sort), SORTS.map((s) => s[0])),
-  };
+  const filters = parseTicketFilters(sp, db);
   const visible = staff ? db.tickets : db.tickets.filter((t) => t.requesterId === user.id);
   const matches = filterTickets(db, visible, filters);
   const paged = paginate(matches, Number(one(sp.page)));
@@ -44,14 +27,21 @@ export default async function Tickets({ searchParams }: PageProps<"/tickets">) {
     params.set("page", String(p));
     return `/tickets?${params}`;
   };
-  const filtered = Boolean(filters.q || filters.status || filters.priority || filters.categoryId || filters.assignee || filters.overdue);
+  const filtered = hasFilters(filters);
+  // The export uses the same filters as this page, but covers every match rather than one page.
+  const exportParams = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) if (typeof v === "string" && k !== "page" && k !== "created") exportParams.set(k, v);
+  const exportHref = `/tickets/export${exportParams.size ? `?${exportParams}` : ""}`;
   const name = (id: string | null) => db.users.find((u) => u.id === id)?.name ?? "Unassigned";
 
   return (
     <>
       <div className="flex items-start justify-between">
         <PageTitle sub="Click a ticket to view or update it.">Tickets</PageTitle>
-        <Link href="/tickets/new" className={btnCls}>New ticket</Link>
+        <div className="flex gap-2">
+          {staff && <a href={exportHref} className={`${btnGhostCls} inline-flex items-center`}>Export CSV</a>}
+          <Link href="/tickets/new" className={btnCls}>New ticket</Link>
+        </div>
       </div>
       {created && (
         <p className="mb-4 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
@@ -67,7 +57,7 @@ export default async function Tickets({ searchParams }: PageProps<"/tickets">) {
         />
         <select name="status" defaultValue={filters.status ?? ""} aria-label="Status" className={inputCls}>
           <option value="">Any status</option>
-          {STATUSES.map((s) => <option key={s} value={s}>{label(s)}</option>)}
+          {TICKET_STATUSES.map((s) => <option key={s} value={s}>{label(s)}</option>)}
         </select>
         <select name="priority" defaultValue={filters.priority ?? ""} aria-label="Priority" className={inputCls}>
           <option value="">Any priority</option>
