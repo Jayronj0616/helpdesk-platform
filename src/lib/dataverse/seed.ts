@@ -3,6 +3,27 @@ import type { Database } from "./types";
 const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
 const hoursFrom = (h: number) => new Date(Date.now() + h * 3_600_000).toISOString();
 
+export const defaultCategories = () => [
+  { id: "c1", name: "Hardware" },
+  { id: "c2", name: "Software" },
+  { id: "c3", name: "Network" },
+  { id: "c4", name: "Access & Accounts" },
+];
+
+// First-run data for a real deployment (DEMO_MODE=0): categories and one manager, nothing else.
+export function seedProduction(adminEmail: string): Database {
+  return {
+    nextTicketNumber: 1001,
+    comments: [],
+    users: [{ id: "u_admin", name: "Administrator", email: adminEmail.trim().toLowerCase(), role: "manager", department: "IT" }],
+    categories: defaultCategories(),
+    tickets: [],
+    assets: [],
+    assetRequests: [],
+    flowRuns: [],
+  };
+}
+
 export function seedDatabase(): Database {
   return {
     nextTicketNumber: 1007,
@@ -19,12 +40,7 @@ export function seedDatabase(): Database {
       { id: "u4", name: "Ben Lim", email: "ben@contoso.test", role: "agent", department: "IT" },
       { id: "u5", name: "Dina Ramos", email: "dina@contoso.test", role: "manager", department: "IT" },
     ],
-    categories: [
-      { id: "c1", name: "Hardware" },
-      { id: "c2", name: "Software" },
-      { id: "c3", name: "Network" },
-      { id: "c4", name: "Access & Accounts" },
-    ],
+    categories: defaultCategories(),
     tickets: [
       {
         id: "t1", number: 1001, title: "Laptop will not boot", description: "Black screen after the Windows update.",
