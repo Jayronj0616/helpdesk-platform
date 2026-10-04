@@ -7,7 +7,7 @@ function newTicket(db: Database, priority: Priority): Ticket {
   const now = new Date().toISOString();
   const t: Ticket = {
     id: "tx", number: 9000, title: "New", description: "", requesterId: "u1", assigneeId: null, categoryId: "c1",
-    priority, status: "new", assetId: null, createdAt: now, updatedAt: now, dueAt: now, resolvedAt: null, escalated: false,
+    priority, status: "new", assetId: null, createdAt: now, updatedAt: now, dueAt: now, resolvedAt: null, escalated: false, rating: null, ratingComment: null, ratedAt: null,
   };
   db.tickets.unshift(t);
   return t;

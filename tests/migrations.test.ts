@@ -11,16 +11,21 @@ let tmp: string;
 const V1_USERS = `CREATE TABLE users (id TEXT PRIMARY KEY, name TEXT, email TEXT NOT NULL UNIQUE,
   role TEXT NOT NULL CHECK (role IN ('employee','agent','manager')), department TEXT)`;
 const META = "CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)";
+// And tickets before ratings existed (versions 1 and 2): no rating columns.
+const OLD_TICKETS = `CREATE TABLE tickets (id TEXT PRIMARY KEY, number INTEGER NOT NULL UNIQUE, title TEXT NOT NULL, description TEXT,
+  requester_id TEXT NOT NULL, assignee_id TEXT, category_id TEXT NOT NULL, priority TEXT, status TEXT, asset_id TEXT,
+  created_at TEXT, updated_at TEXT, due_at TEXT, resolved_at TEXT, escalated INTEGER)`;
+const OLD_TICKET_ROW = "INSERT INTO tickets VALUES ('t1', 1001, 'Old ticket', 'd', 'u1', NULL, 'c1', 'high', 'resolved', NULL, 'a', 'b', 'c', 'd', 0)";
 
 const urlFor = (name: string) => `file:${path.join(tmp, name).replace(/\\/g, "/")}`;
 
 async function v1Database(name: string): Promise<Client> {
   const c = createClient({ url: urlFor(name) });
-  await c.batch([V1_USERS, META, "INSERT INTO users VALUES ('u1', 'Old User', 'old@example.com', 'employee', 'IT')"], "write");
+  await c.batch([V1_USERS, META, OLD_TICKETS, "INSERT INTO users VALUES ('u1', 'Old User', 'old@example.com', 'employee', 'IT')", OLD_TICKET_ROW], "write");
   return c;
 }
 
-const columns = async (c: Client) => (await c.execute("PRAGMA table_info(users)")).rows.map((r) => String(r.name));
+const columns = async (c: Client, table = "users") => (await c.execute(`PRAGMA table_info(${table})`)).rows.map((r) => String(r.name));
 const version = async (c: Client) => (await c.execute("SELECT value FROM meta WHERE key = 'schema_version'")).rows[0]?.value;
 
 beforeAll(async () => {
@@ -38,6 +43,35 @@ describe("migrations", () => {
     expect(await columns(c)).toContain("active");
     expect((await c.execute("SELECT active FROM users WHERE id = 'u1'")).rows[0].active).toBe(1); // existing users stay active
     expect(Number(await version(c))).toBe(migrations.LATEST_VERSION);
+  });
+
+  it("adds the rating columns to tickets and keeps existing tickets, unrated", async () => {
+    const c = await v1Database("ratings.db");
+    expect(await columns(c, "tickets")).not.toContain("rating");
+
+    await migrations.runMigrations(c, false);
+
+    expect(await columns(c, "tickets")).toEqual(expect.arrayContaining(["rating", "rating_comment", "rated_at"]));
+    const row = (await c.execute("SELECT title, rating, rating_comment, rated_at FROM tickets WHERE id = 't1'")).rows[0];
+    expect(row).toMatchObject({ title: "Old ticket", rating: null, rating_comment: null, rated_at: null });
+  });
+
+  it("upgrades a version 2 database (users.active present) to version 3 without touching users", async () => {
+    const c = await v1Database("v2.db");
+    await c.batch(["ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1", "INSERT INTO meta VALUES ('schema_version', '2')"], "write");
+
+    await migrations.runMigrations(c, false);
+
+    expect(await columns(c, "tickets")).toContain("rating");
+    expect((await columns(c)).filter((n) => n === "active")).toHaveLength(1); // the version 2 step was not run again
+    expect(Number(await version(c))).toBe(migrations.LATEST_VERSION);
+  });
+
+  it("the database refuses a rating outside 1 to 5", async () => {
+    const c = await v1Database("check.db");
+    await migrations.runMigrations(c, false);
+    await expect(c.execute("UPDATE tickets SET rating = 9 WHERE id = 't1'")).rejects.toThrow();
+    await expect(c.execute("UPDATE tickets SET rating = 5 WHERE id = 't1'")).resolves.toBeDefined();
   });
 
   it("is safe to run again", async () => {
