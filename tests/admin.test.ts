@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { seedDatabase } from "@/lib/dataverse/seed";
-import { changeUserRole, createAsset, requestTypes, setUserActive, updateAsset, updateProfile } from "@/lib/dataverse/admin";
+import { addCategory, changeUserRole, createAsset, deleteCategory, renameCategory, requestTypes, setUserActive, updateAsset, updateProfile } from "@/lib/dataverse/admin";
 
 const asset = (over: Partial<Parameters<typeof createAsset>[1]> = {}) => ({ tag: "LT-0042", name: "ThinkPad X1", type: "Laptop", purchasedAt: "2026-01-15", ...over });
 
@@ -189,5 +189,63 @@ describe("updateProfile", () => {
     db.users.find((u) => u.id === "u2")!.active = false;
     expect(updateProfile(db, "ghost", { name: "X", department: "Y" })).toMatchObject({ ok: false });
     expect(updateProfile(db, "u2", { name: "X", department: "Y" })).toMatchObject({ ok: false });
+  });
+});
+
+describe("categories", () => {
+  it("a manager can add a category, trimming and collapsing spaces", () => {
+    const db = seedDatabase();
+    const r = addCategory(db, "u5", "  Printers   and   scanners ");
+    expect(r.ok && r.category.name).toBe("Printers and scanners");
+    expect(db.categories).toHaveLength(5);
+  });
+
+  it("rejects an empty, too long or duplicate name, ignoring case", () => {
+    const db = seedDatabase();
+    expect(addCategory(db, "u5", "   ")).toMatchObject({ ok: false });
+    expect(addCategory(db, "u5", "x".repeat(41))).toMatchObject({ ok: false });
+    expect(addCategory(db, "u5", "hardware")).toMatchObject({ ok: false });
+    expect(db.categories).toHaveLength(4);
+  });
+
+  it("only active managers can manage categories", () => {
+    const db = seedDatabase();
+    expect(addCategory(db, "u3", "Agents cannot")).toMatchObject({ ok: false }); // agent
+    expect(renameCategory(db, "u1", "c1", "Employees cannot")).toMatchObject({ ok: false });
+    expect(deleteCategory(db, "u3", "c1")).toMatchObject({ ok: false });
+    db.users.find((u) => u.id === "u5")!.active = false;
+    expect(addCategory(db, "u5", "Inactive manager")).toMatchObject({ ok: false });
+    expect(db.categories.map((c) => c.name)).toEqual(["Hardware", "Software", "Network", "Access & Accounts"]);
+  });
+
+  it("renames in place, so existing tickets show the new name", () => {
+    const db = seedDatabase();
+    expect(renameCategory(db, "u5", "c3", "Networking")).toEqual({ ok: true });
+    expect(db.categories.find((c) => c.id === "c3")!.name).toBe("Networking");
+    expect(db.tickets.filter((t) => t.categoryId === "c3").length).toBeGreaterThan(0); // still linked by id
+  });
+
+  it("allows renaming to a different case of its own name but not to another category's name", () => {
+    const db = seedDatabase();
+    expect(renameCategory(db, "u5", "c1", "HARDWARE")).toEqual({ ok: true });
+    expect(renameCategory(db, "u5", "c1", "software")).toMatchObject({ ok: false });
+    expect(renameCategory(db, "u5", "nope", "Anything")).toMatchObject({ ok: false });
+  });
+
+  it("deletes only an unused category, and keeps at least one", () => {
+    const db = seedDatabase();
+    const used = deleteCategory(db, "u5", "c1"); // hardware has tickets
+    expect(used).toMatchObject({ ok: false });
+    expect(used.ok === false && used.error).toContain("cannot be deleted");
+
+    const added = addCategory(db, "u5", "Temporary");
+    if (!added.ok) throw new Error("setup failed");
+    expect(deleteCategory(db, "u5", added.category.id)).toEqual({ ok: true });
+    expect(db.categories.some((c) => c.id === added.category.id)).toBe(false);
+
+    const lone = seedDatabase();
+    lone.tickets = [];
+    lone.categories = lone.categories.slice(0, 1);
+    expect(deleteCategory(lone, "u5", lone.categories[0].id)).toMatchObject({ ok: false });
   });
 });
