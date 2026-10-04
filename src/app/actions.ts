@@ -12,7 +12,7 @@ import { label } from "@/components/ui";
 import { createAsset, requestTypes, updateAsset, updateProfile } from "@/lib/dataverse/admin";
 import type { FormState } from "@/lib/form-state";
 import { rateTicket } from "@/lib/dataverse/feedback";
-import { reopenTicket } from "@/lib/dataverse/lifecycle";
+import { applyStatusChange, reopenTicket } from "@/lib/dataverse/lifecycle";
 
 export async function createTicket(formData: FormData) {
   const user = await requireUser();
@@ -33,7 +33,7 @@ export async function createTicket(formData: FormData) {
       id: newId("t"), number: db.nextTicketNumber++, title, description,
       requesterId: user.id, assigneeId: null, categoryId, priority,
       status: "new" as TicketStatus, assetId, createdAt: now, updatedAt: now,
-      dueAt: now, resolvedAt: null, escalated: false, rating: null, ratingComment: null, ratedAt: null,
+      dueAt: now, resolvedAt: null, escalated: false, rating: null, ratingComment: null, ratedAt: null, waitingSince: null,
     };
     db.tickets.unshift(ticket);
     onTicketCreated(db, ticket);
@@ -75,10 +75,10 @@ export async function updateTicket(formData: FormData) {
         t.assetId = nextAssetId;
       }
     }
-    t.status = status;
+    const slaNote = applyStatusChange(t, status);
+    if (slaNote) addSystemEntry(db, t.id, slaNote);
     t.assigneeId = nextAssigneeId;
     t.updatedAt = new Date().toISOString();
-    t.resolvedAt = status === "resolved" || status === "closed" ? (t.resolvedAt ?? t.updatedAt) : null;
   });
   revalidatePath("/", "layout");
 }
