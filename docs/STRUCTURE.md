@@ -25,6 +25,7 @@ src/
     api/health/route.ts   Public health check for monitors and post-deploy checks
     account/page.tsx      Own profile and password change
     admin/users/page.tsx  User administration (managers only, 404 for everyone else)
+    admin/categories/page.tsx  Ticket category management (managers only)
     tickets/
       page.tsx            Ticket list with search, filters, sorting, pagination
       new/page.tsx        Submit ticket form (canvas app analog)
@@ -35,6 +36,7 @@ src/
   components/
     Nav.tsx               Top nav with the signed-in user and Sign out
     AuthForms.tsx         Client components: LoginForm, RegisterForm (useActionState)
+    CategoryForms.tsx     Client forms: AddCategoryForm, RenameCategoryForm
     ResetForms.tsx        Client forms: ForgotPasswordForm, ResetPasswordForm
     ActionForms.tsx       Client forms: CreateUserForm, ResetPasswordForm, AddAssetForm, ChangePasswordForm
     ui.tsx                Badge, Card, PageTitle, class constants, label(), fmt()
@@ -47,7 +49,7 @@ src/
       store.ts            readDb, mutate (write transaction, diff write-back), resetDb, newId, first-run seed
       seed.ts             Demo data
       queries.ts          Pure helpers over rows (isOpen, isOverdue, filterTickets, paginate, ticketsPerDay)
-      admin.ts            Pure rules: changeUserRole, createAsset, updateAsset, requestTypes
+      admin.ts            Pure rules: changeUserRole, setUserActive, updateProfile, createAsset, updateAsset, requestTypes, add/rename/deleteCategory
       comments.ts         addComment, addSystemEntry (audit trail), visibleComments (hides internal notes)
     auth/
       password.ts         scrypt hash and verify
