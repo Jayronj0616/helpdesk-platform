@@ -5,8 +5,6 @@ import { createSession, destroySession, getSessionUser, SESSION_DAYS } from "./a
 
 export const SESSION_COOKIE = "session";
 
-export const DEMO_MODE = process.env.DEMO_MODE !== "0";
-
 export async function currentUser(): Promise<User | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   return token ? getSessionUser(token) : null;

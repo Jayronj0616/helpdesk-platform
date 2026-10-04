@@ -2,9 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/AuthForms";
 import { Card, PageTitle } from "@/components/ui";
-import { DEMO_PASSWORD } from "@/lib/dataverse/store";
+import { DEMO_MODE, DEMO_PASSWORD } from "@/lib/config";
 import { seedDatabase } from "@/lib/dataverse/seed";
-import { DEMO_MODE, currentUser } from "@/lib/session";
+import { currentUser } from "@/lib/session";
 
 export default async function Login() {
   if (await currentUser()) redirect("/");

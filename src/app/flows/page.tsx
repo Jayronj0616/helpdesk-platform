@@ -1,6 +1,7 @@
 import { resetDemoData, runEscalation } from "@/app/actions";
 import { readDb } from "@/lib/dataverse/store";
-import { DEMO_MODE, canApprove, requireUser } from "@/lib/session";
+import { DEMO_MODE } from "@/lib/config";
+import { canApprove, requireUser } from "@/lib/session";
 import { Card, PageTitle, btnCls, btnGhostCls, fmt } from "@/components/ui";
 
 // Run history: the Power Automate "28-day run history" equivalent.
