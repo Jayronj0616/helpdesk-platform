@@ -71,5 +71,8 @@ A ticket title is typed by any employee and opened in Excel by staff, so `=HYPER
 ## 23. One rating per ticket, by the requester only
 A satisfaction number is only worth showing if it cannot be steered. So only the person who raised the ticket can rate it, only after it is resolved, and only once; staff cannot rate on a customer's behalf or change a rating. The same "Ticket not found" answer for missing and not-yours stops ticket ids being probed. The 1 to 5 range is also a database `CHECK`, so a bug cannot store 9. This was the first change to an existing table, shipped as migration 3, with tests that upgrade real version 1 and 2 shapes.
 
-## 24. Small commits
+## 24. Typed partial reads instead of a query layer
+Every request used to load every table, including every comment and flow run, to draw a dashboard. Rewriting all access as per-page queries would have meant new code for every page and a lot of risk. Instead `readDb([...tables])` loads only what a page names and returns a type containing only those keys, so forgetting to ask for a table is a compile error rather than a silent empty list, and the compiler found no such mistakes in the migration of all ten call sites. The ticket page loads just its own comments with an indexed query. Writes still load everything, because the diff needs it.
+
+## 25. Small commits
 The owner wants one logical change per commit (it also reads well in history and helps their GitHub contribution graph).

@@ -35,6 +35,7 @@ Status key: `[x]` done, `[~]` in progress, `[ ]` to do.
 - [x] Manager-managed ticket categories (`/admin/categories`): add, rename, delete when unused
 - [x] CSV export of the filtered ticket list for staff, with spreadsheet formula protection
 - [x] Customer satisfaction: requesters rate resolved tickets once, shown on the ticket, the dashboard and the CSV export (migration 3)
+- [x] Performance: pages load only the tables they use (typed `readDb([...])`), one ticket's comments by indexed query, indexes on the hot lookups
 - [x] GitHub Actions CI (lint, types, unit tests, build, e2e), passing on Linux
 - [x] **Versioned migrations** (`migrations.ts`, version in `meta`), safe on concurrent startup
 - [x] **Deactivate and reactivate users** (never delete): blocks sign-in, ends sessions, unassigns open tickets, hidden from assignee lists and flows
@@ -50,7 +51,6 @@ Nothing in progress. Pick from the backlog.
 - [ ] **Deploy** (needs the owner's accounts): create the Turso database, set the env vars from `docs/DEPLOY.md`, deploy, and record anything that differs from the doc (the Turso path is untested)
 - [ ] **After deploying:** request a password reset for your own address to confirm Resend delivery (only unit tested with a mocked `fetch`)
 - [ ] Send the notification emails the flows currently only simulate (reuse `sendMail`)
-- [ ] Replace load-everything-per-request in `readDb()` with targeted queries if data grows
 
 ## Decisions
 See `docs/DECISIONS.md`.

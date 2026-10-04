@@ -47,7 +47,7 @@ src/
       schema.ts           SQL table specs (columns, constraints, load order), auth table DDL
       db.ts               libSQL client singleton; creates tables and runs migrations on connect
       migrations.ts       Numbered schema migrations for existing databases (version kept in meta)
-      store.ts            readDb, mutate (write transaction, diff write-back), resetDb, newId, first-run seed
+      store.ts            readDb (all or a typed list of tables), readComments, mutate (write transaction, diff write-back), resetDb, newId, first-run seed
       seed.ts             Demo data
       queries.ts          Pure helpers over rows (isOpen, isOverdue, filterTickets, parseTicketFilters, paginate, ticketsPerDay)
       admin.ts            Pure rules: changeUserRole, setUserActive, updateProfile, createAsset, updateAsset, requestTypes, add/rename/deleteCategory
