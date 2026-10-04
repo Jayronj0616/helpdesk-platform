@@ -1,7 +1,8 @@
-import type { User } from "../dataverse/types";
+import type { Role, User } from "../dataverse/types";
 import { getDb } from "../dataverse/db";
 import { ensureSeeded, newId } from "../dataverse/store";
 import { MIN_PASSWORD_LENGTH, hashPassword, verifyPassword } from "./password";
+import { destroyUserSessions } from "./sessions";
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
@@ -9,6 +10,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Verified against when the email is unknown, so a miss takes as long as a wrong password.
 let dummyHash: Promise<string> | undefined;
+
+const toUser = (r: Record<string, unknown>): User => ({
+  id: String(r.id), name: String(r.name), email: String(r.email), role: r.role as Role, department: String(r.department),
+});
 
 export async function authenticate(email: string, password: string): Promise<User | null> {
   await ensureSeeded();
@@ -25,27 +30,45 @@ export async function authenticate(email: string, password: string): Promise<Use
     return null;
   }
   if (!(await verifyPassword(password, String(row.password_hash)))) return null;
-  return { id: String(row.id), name: String(row.name), email: String(row.email), role: row.role as User["role"], department: String(row.department) };
+  return toUser(row);
 }
 
 export type RegisterResult = { ok: true; user: User } | { ok: false; error: string };
+export type PasswordResult = { ok: true } | { ok: false; error: string };
 
-// Self-registration always creates an employee. Agents and managers are never self-service.
-export async function registerUser(input: { name: string; email: string; department: string; password: string }): Promise<RegisterResult> {
+export function checkPassword(password: string): string | null {
+  if (password.length < MIN_PASSWORD_LENGTH) return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+  if (password.length > 200) return "Password is too long.";
+  return null;
+}
+
+interface AccountInput {
+  name: string;
+  email: string;
+  department: string;
+  password: string;
+}
+
+/**
+ * Creates a user and their credentials. This is the only place accounts are created. The role is
+ * chosen by the caller: public registration always passes "employee", and only the admin page
+ * (managers only) passes anything else.
+ */
+export async function createAccount(input: AccountInput, role: Role): Promise<RegisterResult> {
   const name = input.name.trim();
   const email = normalizeEmail(input.email);
   const department = input.department.trim() || "General";
-  if (!name || name.length > 80) return { ok: false, error: "Enter your name (up to 80 characters)." };
+  if (!name || name.length > 80) return { ok: false, error: "Enter a name (up to 80 characters)." };
   if (!EMAIL_RE.test(email) || email.length > 120) return { ok: false, error: "Enter a valid email address." };
-  if (input.password.length < MIN_PASSWORD_LENGTH) return { ok: false, error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` };
-  if (input.password.length > 200) return { ok: false, error: "Password is too long." };
+  const bad = checkPassword(input.password);
+  if (bad) return { ok: false, error: bad };
 
   await ensureSeeded();
   const client = await getDb();
   const exists = await client.execute({ sql: "SELECT 1 FROM users WHERE email = ?", args: [email] });
   if (exists.rows.length) return { ok: false, error: "An account with this email already exists." };
 
-  const user: User = { id: newId("u"), name, email, role: "employee", department: department.slice(0, 60) };
+  const user: User = { id: newId("u"), name, email, role, department: department.slice(0, 60) };
   const hash = await hashPassword(input.password);
   try {
     await client.batch(
@@ -60,4 +83,36 @@ export async function registerUser(input: { name: string; email: string; departm
     return { ok: false, error: "An account with this email already exists." };
   }
   return { ok: true, user };
+}
+
+// Self-registration always creates an employee. Agents and managers are never self-service.
+export const registerUser = (input: AccountInput) => createAccount(input, "employee");
+
+/** Sets a user's password and signs them out everywhere. Callers must have checked who is allowed to do this. */
+export async function setPassword(userId: string, password: string): Promise<PasswordResult> {
+  const bad = checkPassword(password);
+  if (bad) return { ok: false, error: bad };
+  const client = await getDb();
+  const res = await client.execute({
+    sql: "UPDATE auth_credentials SET password_hash = ? WHERE user_id = ?",
+    args: [await hashPassword(password), userId],
+  });
+  if (res.rowsAffected === 0) return { ok: false, error: "Account not found." };
+  await destroyUserSessions(userId);
+  return { ok: true };
+}
+
+/** Self-service password change. Needs the current password, and keeps only the current session signed in. */
+export async function changeOwnPassword(userId: string, current: string, next: string, keepToken?: string): Promise<PasswordResult> {
+  const client = await getDb();
+  const res = await client.execute({ sql: "SELECT password_hash FROM auth_credentials WHERE user_id = ?", args: [userId] });
+  const hash = res.rows[0]?.password_hash;
+  if (!hash || !(await verifyPassword(current, String(hash)))) return { ok: false, error: "Your current password is not correct." };
+  if (current === next) return { ok: false, error: "Choose a new password that is different from the current one." };
+  const bad = checkPassword(next);
+  if (bad) return { ok: false, error: bad };
+
+  await client.execute({ sql: "UPDATE auth_credentials SET password_hash = ? WHERE user_id = ?", args: [await hashPassword(next), userId] });
+  await destroyUserSessions(userId, keepToken);
+  return { ok: true };
 }
