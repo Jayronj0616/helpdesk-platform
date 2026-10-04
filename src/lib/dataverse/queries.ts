@@ -63,7 +63,7 @@ export const hasFilters = (f: TicketFilters) => Boolean(f.q || f.status || f.pri
 const PRIORITY_RANK: Record<Priority, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 
 // Search matches the ticket number, title, description and requester name.
-export function filterTickets(db: Database, tickets: Ticket[], f: TicketFilters): Ticket[] {
+export function filterTickets(db: Pick<Database, "users">, tickets: Ticket[], f: TicketFilters): Ticket[] {
   const q = f.q?.trim().toLowerCase().replace(/^#/, "");
   const out = tickets.filter((t) => {
     if (f.status && t.status !== f.status) return false;
