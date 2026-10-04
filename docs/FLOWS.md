@@ -7,6 +7,7 @@ Code: `src/lib/flows/index.ts`. Each flow takes the `db` object, so it runs insi
 | `onTicketCreated` | A ticket is created | `createTicket` | 1. Set `dueAt` from priority SLA. 2. Assign the agent with the fewest open tickets and set status to `in_progress`. 3. "Email" the agent. 4. If critical, "Teams alert" the manager. 5. Write audit entries ("Ticket created", "auto-assigned"). |
 | `escalateOverdue` | Manager clicks the button on `/flows` (hourly schedule in the real version) | `runEscalation` | For each open, non-escalated, overdue ticket: raise priority one level (capped at critical), set `escalated`, "email" the manager, write an audit entry. Logs "No overdue tickets found" if none. |
 | `onAssetRequestDecided` | Manager approves or rejects a request | `decideRequest` | Approved: assign the first available asset of that type to the requester, or log a purchase task if none. Rejected: "email" the requester. |
+| `onTicketReopened` | The requester reopens a resolved ticket | `reopenTicketAction` (via `reopenTicket`) | Logs the restarted SLA clock (the rule has already reset status, assignee and due date). Emails the assignee, or when nobody active holds it, notes that it is back in the new queue and emails the manager. |
 
 Emails and Teams messages are simulated: they are only recorded as text in the run's `actions`. No real messages are sent.
 

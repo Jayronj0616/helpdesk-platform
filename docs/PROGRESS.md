@@ -36,6 +36,7 @@ Status key: `[x]` done, `[~]` in progress, `[ ]` to do.
 - [x] CSV export of the filtered ticket list for staff, with spreadsheet formula protection
 - [x] Customer satisfaction: requesters rate resolved tickets once, shown on the ticket, the dashboard and the CSV export (migration 3)
 - [x] Performance: pages load only the tables they use (typed `readDb([...])`), one ticket's comments by indexed query, indexes on the hot lookups
+- [x] Reopen a resolved ticket (7-day window, reason required, SLA restarts, "reopened" flow)
 - [x] GitHub Actions CI (lint, types, unit tests, build, e2e), passing on Linux
 - [x] **Versioned migrations** (`migrations.ts`, version in `meta`), safe on concurrent startup
 - [x] **Deactivate and reactivate users** (never delete): blocks sign-in, ends sessions, unassigns open tickets, hidden from assignee lists and flows

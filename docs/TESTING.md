@@ -20,6 +20,7 @@ Most logic is pure functions over a `Database`, so those tests build a fresh `se
 | `tests/queries.test.ts` | `isOverdue`, `filterTickets` (every filter, search, sorting, no input mutation), `paginate`, `ticketsPerDay` |
 | `tests/csv.test.ts` | `csvCell` and `toCsv` (quoting, formula neutralising for every trigger character, no change mid-text, BOM and CRLF) and `parseTicketFilters` (valid values, invalid and repeated ignored, `hasFilters`) |
 | `tests/export-route.test.ts` | The export route against a real database with the session stubbed: 401, 403, staff download headers, same filters as the list, names and dates not ids, formulas neutralised |
+| `tests/lifecycle.test.ts` | `reopenTicket` (status, assignee and SLA reset, reason as a comment, audit and flow, inactive or non-staff assignee goes to the queue, requester only with no tell, closed and open refused, reason required, 7-day window including the edge, not twice, rating kept) and `canReopen` |
 | `tests/feedback.test.ts` | `rateTicket` (requester only, resolved or closed only, once only, 1 to 5 whole numbers, comment length, trimmed, audit entry, no tell between missing and not yours), `canRate`, `averageRating` |
 | `tests/comments.test.ts` | `filterVisible` and `visibleComments` (internal notes hidden from employees, ordering, input not mutated), `addComment`, `addSystemEntry` |
 | `tests/flows.test.ts` | `onTicketCreated`, `escalateOverdue`, `onAssetRequestDecided` |
@@ -49,6 +50,7 @@ Playwright drives the **already installed Chrome** (no browser download; `E2E_BR
 | `03-staff-and-manager` | Agent: all tickets, internal notes (hidden from the requester), audit entries, add asset (uppercased tag, duplicate rejected, status edit), cannot approve. Manager: approve assigns an asset, escalation, reject |
 | `04-admin` | Create an agent who can sign in, demote (unassigns tickets), deactivate and reactivate, session ended immediately on deactivation, password reset signs the user out, own role locked |
 | `03-feedback` | A requester must choose a rating, rates a resolved ticket once, sees the saved rating and a thank-you, the form never comes back, staff see it but cannot rate, dashboard averages (own 4.0, manager 4.5) |
+| `03-reopen` | Open tickets have no reopen form, a reason is required, reopening shows the history and the flow run, closed and other people's tickets cannot be reopened |
 | `04-categories` | Managers only (404 otherwise), add, duplicate refused, the ticket form follows, rename, delete, a category with tickets cannot be deleted |
 | `04-export` | An employee cannot export (403, no button), signed-out is 401, staff get a filtered CSV, a formula title is neutralised, and the button downloads a real file |
 | `05-accessibility` | axe (WCAG 2 A and AA) on public, employee, staff and manager pages with no serious or critical violations, plus a keyboard-only sign-in |
@@ -64,6 +66,7 @@ A test that passes alone can fail in the full run if an earlier file changed the
 | `01-auth` | Registers `e2e.newhire@contoso.test` (password `a-long-password-1`) |
 | `02-employee` | Maria creates ticket 1007 and a comment and a request |
 | `03-feedback` | Maria rates ticket 1003 (4) |
+| `03-reopen` | Maria reopens ticket 1003 (back to in progress, Ana) |
 | `03-staff-and-manager` | Ana's notes and status edits, asset E2E-001, request approved (MN-0001 to Maria) and rejected, escalation of ticket 1001 |
 | `04-admin` | Creates Sam, **demotes Ana to employee**, deactivates and reactivates Ben and Carlo, **resets Carlo's password** |
 | `04-categories` | Adds, renames and deletes a category |

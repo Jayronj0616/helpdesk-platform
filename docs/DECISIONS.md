@@ -74,5 +74,8 @@ A satisfaction number is only worth showing if it cannot be steered. So only the
 ## 24. Typed partial reads instead of a query layer
 Every request used to load every table, including every comment and flow run, to draw a dashboard. Rewriting all access as per-page queries would have meant new code for every page and a lot of risk. Instead `readDb([...tables])` loads only what a page names and returns a type containing only those keys, so forgetting to ask for a table is a compile error rather than a silent empty list, and the compiler found no such mistakes in the migration of all ten call sites. The ticket page loads just its own comments with an indexed query. Writes still load everything, because the diff needs it.
 
-## 25. Small commits
+## 25. Reopen: resolved only, within a week, with a reason
+Closed is final by design (staff close on purpose), and a resolution from last month is a different problem that deserves a new ticket, so only a recently resolved ticket can be reopened, and the requester has to say what is still wrong, which becomes the first thing the assignee reads. The SLA clock restarts because the customer's wait restarted, and the ticket goes back to its assignee only if that person is still active staff, otherwise to the queue where a manager is told. A rating given before stays, so one resolution cannot be rated twice.
+
+## 26. Small commits
 The owner wants one logical change per commit (it also reads well in history and helps their GitHub contribution graph).
