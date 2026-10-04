@@ -28,6 +28,8 @@ Relationships: Ticket -> Category (many-to-one), Ticket -> Asset (many-to-one), 
 - **HelpDesk Agent**: Ticket and Asset: Create, Read, Write at *Business unit* level.
 - **HelpDesk Manager**: everything the Agent has, plus Write on Asset Request (to approve), at *Organization* level.
 
+**Sign-in:** the code project has its own email and password login. In Power Platform you get this for free: users sign in with their Microsoft Entra ID (Azure AD) account, and you assign them to security roles (directly or through an Entra group-backed team). There is no password or session code to write, which is a big reason organisations choose it.
+
 Interview point: the three access levels (User, Business unit, Organization) are how Dataverse does row-level security. This is what `canWorkTickets` and the "employees only see their own tickets" filters mimic.
 
 Internal notes need a security rule too: in the model-driven app, put internal comments in a view filtered to `Internal = No` for the Employee role (a separate view or a security role that has no read access to the Internal column through **column-level security**). Interview point: column security profiles hide a single field from certain roles, which is how "internal notes" works here.
