@@ -9,14 +9,13 @@ An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power P
 - Everything in PROGRESS.md under "Done" works. Run `git status -sb` to see whether anything is unpushed.
 - Real auth and a real database are in (SQLite via `@libsql/client`; hosted Turso in production, because Vercel's disk is read-only and temporary).
 - Admin features are in: `/admin/users` (managers), `/account` (everyone), asset add and edit (staff), and a production first-run mode (`DEMO_MODE=0` plus `ADMIN_EMAIL` and `ADMIN_PASSWORD`).
-- Verified: 126 unit tests (`npm test`), 34 Playwright end-to-end tests (`npm run test:e2e`, real Chrome), lint (including type-aware promise rules), types and build are clean. GitHub Actions runs all of it on every push.
+- Verified: 126 unit tests (`npm test`), 34 Playwright end-to-end tests (`npm run test:e2e`, real Chrome), lint (including type-aware promise rules), types and build are clean. GitHub Actions runs all of it on every push and is green (checked 2026-10-04). Setting it up found two Linux-only problems, both fixed: a Windows-generated lockfile missing `@emnapi/*` (pinned as dev dependencies), and `PageProps`/`LayoutProps` not existing on a fresh clone until `next typegen` runs (use `npm run typecheck`, never a bare `tsc`).
 - Also built: versioned schema migrations, user deactivation, a database-backed rate limiter, a reset that restores demo passwords.
 - **Not verified:** anything against a real Turso database. Only a local libSQL file has been used.
 
 ## Next step
-1. **Check the first CI run** on GitHub (Actions tab). It has not been seen passing yet when this was written; if it fails, fix it first. The e2e job relies on Chrome being preinstalled on the runner.
-2. **Deploy** (needs the owner): follow `docs/DEPLOY.md`. After the first deploy, fix that doc with whatever differed, and check cold-start time and the latency of a write.
-3. Then: README screenshots, password reset by email (needs an email provider), targeted queries instead of loading every table.
+1. **Deploy** (needs the owner): follow `docs/DEPLOY.md`. After the first deploy, fix that doc with whatever differed, and check cold-start time and the latency of a write.
+2. Then: README screenshots, password reset by email (needs an email provider), targeted queries instead of loading every table.
 
 ## Gotchas
 - Next.js 16: `params` and `searchParams` are Promises; use `PageProps<"/route">` types. Read `node_modules/next/dist/docs/` if unsure.
@@ -32,6 +31,7 @@ An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power P
 - Vitest 5 needs `@types/node` 22 or newer (already upgraded).
 - To sign in during testing: demo accounts and the shared password are on the login page (default `helpdesk-demo`). The browser tool can fill the login form; `form.requestSubmit()` through JavaScript works for inline forms.
 - Bash heredocs with quotes can fail in this environment, and `python` is a hanging Windows Store stub. Write files with the editor tools and use `node` scripts (a file, not `node -e`, when the text has apostrophes).
+- If `npm ci` fails in CI with a lockfile mismatch after adding a dependency on Windows, run `npm install --package-lock-only` and check for missing optional packages; regenerating on Linux (or WSL) is the clean fix.
 - Windows: git prints CRLF warnings and may exit 255 on success. Check `git log`, not the exit code.
 - The user wants many small, single-purpose commits (they care about GitHub contributions).
 

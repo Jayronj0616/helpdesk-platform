@@ -27,7 +27,7 @@ Status key: `[x]` done, `[~]` in progress, `[ ]` to do.
 - [x] Request types no longer depend on the register (defaults plus register types), so a fresh production database works
 - [x] 126 unit tests (flows, queries, comments, admin rules, password hashing, rate limiter, migrations, real SQLite database, accounts, production first run)
 - [x] 34 Playwright end-to-end tests against the installed Chrome (auth, employee, staff, manager, admin, account, reset)
-- [x] GitHub Actions CI (lint, types, unit tests, build, e2e)
+- [x] GitHub Actions CI (lint, types, unit tests, build, e2e), passing on Linux
 - [x] **Versioned migrations** (`migrations.ts`, version in `meta`), safe on concurrent startup
 - [x] **Deactivate and reactivate users** (never delete): blocks sign-in, ends sessions, unassigns open tickets, hidden from assignee lists and flows
 - [x] **Database-backed rate limiter** (hashed keys), works across serverless instances
