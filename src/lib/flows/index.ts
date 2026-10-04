@@ -32,7 +32,8 @@ export function onTicketCreated(db: Database, ticket: Ticket) {
   if (pick) {
     ticket.assigneeId = pick.id;
     ticket.status = "in_progress";
-    actions.push(`Assigned to ${pick.name} (${load(pick.id) - 1} other open tickets)`);
+    const others = load(pick.id) - 1;
+    actions.push(`Assigned to ${pick.name} (${others} other open ticket${others === 1 ? "" : "s"})`);
     actions.push(`Sent email to ${pick.email}: new ticket #${ticket.number}`);
     addSystemEntry(db, ticket.id, `Flow auto-assigned this ticket to ${pick.name}`);
   }

@@ -40,6 +40,17 @@ describe("onTicketCreated", () => {
     expect(low.flowRuns[0].actions.some((a) => a.includes("Teams alert"))).toBe(false);
   });
 
+  it("words the workload note correctly for one and for several tickets", () => {
+    const one = seedDatabase(); // Ben (u4) holds one open ticket
+    onTicketCreated(one, newTicket(one, "medium"));
+    expect(one.flowRuns[0].actions.join(" ")).toContain("Assigned to Ben Lim (1 other open ticket)");
+
+    const none = seedDatabase();
+    none.tickets.filter((t) => t.assigneeId === "u4").forEach((t) => (t.assigneeId = null));
+    onTicketCreated(none, newTicket(none, "medium"));
+    expect(none.flowRuns[0].actions.join(" ")).toContain("(0 other open tickets)");
+  });
+
   it("logs a run and audit entries on the ticket", () => {
     const db = seedDatabase();
     const t = newTicket(db, "medium");
