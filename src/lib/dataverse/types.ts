@@ -13,6 +13,8 @@ export interface User {
   email: string;
   role: Role;
   department: string;
+  /** Deactivated accounts cannot sign in or be assigned tickets, but keep their history. */
+  active: boolean;
 }
 
 export interface Category {
