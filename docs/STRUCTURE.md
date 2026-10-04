@@ -3,7 +3,7 @@
 Read this before changing code. Keep it updated when files are added, moved or removed.
 
 ## Stack
-Next.js 16 (App Router, server components, server actions), TypeScript, Tailwind v4. No client-side data fetching. Pages read the store directly, and forms post to server actions.
+Next.js 16 (App Router, server components, server actions), TypeScript, Tailwind v4, SQLite through `@libsql/client` (local file, or hosted Turso with the same code). No client-side data fetching. Pages read the store directly, and forms post to server actions.
 
 Next.js 16 has breaking changes. Check `node_modules/next/dist/docs/` before using an API you are unsure about. `params` and `searchParams` are Promises, and the typed helpers are `PageProps<"/route">` and `LayoutProps<"/">`.
 
@@ -12,52 +12,70 @@ Next.js 16 has breaking changes. Check `node_modules/next/dist/docs/` before usi
 ```
 src/
   app/
-    layout.tsx            Shell: nav + persona switcher
+    layout.tsx            Shell: nav (shown only when signed in)
     page.tsx              Dashboard (Power BI analog)
-    actions.ts            ALL mutations (server actions). Role checks live here.
+    actions.ts            ALL data mutations (server actions). Auth and role checks live here.
+    auth-actions.ts       login, register, logout (rate limited, generic errors)
+    login/page.tsx        Sign in, plus demo account hints when DEMO_MODE is on
+    register/page.tsx     Self-registration (always creates an employee)
     tickets/
-      page.tsx            Ticket list with search and filters (model-driven view)
+      page.tsx            Ticket list with search, filters, sorting, pagination
       new/page.tsx        Submit ticket form (canvas app analog)
-      [id]/page.tsx       Ticket detail, status edit, comment thread
+      [id]/page.tsx       Ticket detail, status/assignee/asset edit, comment thread
     assets/page.tsx       Asset register
     requests/page.tsx     Asset request approval workflow
     flows/page.tsx        Flow run history, manual flow triggers
   components/
-    Nav.tsx               Top nav
-    PersonaSwitcher.tsx   Client component, switches the signed-in persona cookie
+    Nav.tsx               Top nav with the signed-in user and Sign out
+    AuthForms.tsx         Client components: LoginForm, RegisterForm (useActionState)
     ui.tsx                Badge, Card, PageTitle, class constants, label(), fmt()
   lib/
     dataverse/
-      types.ts            Table types, SLA_HOURS. Source of truth for the data model.
+      types.ts            Table types, SLA_HOURS, PRIORITIES. Source of truth for the data model.
+      schema.ts           SQL table specs (columns, constraints, load order), auth table DDL
+      db.ts               libSQL client singleton + migrations (CREATE TABLE IF NOT EXISTS)
+      store.ts            readDb, mutate (write transaction, diff write-back), resetDb, newId, first-run seed
       seed.ts             Demo data
-      store.ts            File-backed DB (data/db.json): readDb, mutate, resetDb, newId
-      queries.ts          Pure helpers over rows (isOpen, isOverdue, filterTickets, paginate)
+      queries.ts          Pure helpers over rows (isOpen, isOverdue, filterTickets, paginate, ticketsPerDay)
       comments.ts         addComment, addSystemEntry (audit trail), visibleComments (hides internal notes)
+    auth/
+      password.ts         scrypt hash and verify
+      credentials.ts      authenticate, registerUser
+      sessions.ts         createSession, getSessionUser, destroySession (hashed tokens in SQL)
+      rate-limit.ts       In-memory sliding-window limiter for login and register
     flows/index.ts        Automation flows (Power Automate analog). Each logs a FlowRun.
-    session.ts            currentUser() from the persona cookie, role checks
-tests/                    Vitest unit tests (queries, comments, flows). Run with npm test.
+    session.ts            currentUser, requireUser, startSession/endSession (cookie), role checks, DEMO_MODE
+tests/                    Vitest: queries, comments, flows (pure), password + rate limit, db (real SQLite file)
 vitest.config.mts         Test config (resolves the @ alias)
+.env.example              DATABASE_URL, DATABASE_AUTH_TOKEN, DEMO_MODE, DEMO_PASSWORD
 docs/
   INDEX.md                Which doc answers which question
   HANDOFF.md              Current state and next step. Rewrite every session.
   PROGRESS.md             Task tracker. Update after every task.
   STRUCTURE.md            This file
-  DATA-MODEL.md           Tables, enums, visibility rules
-  FEATURES.md             Routes, permissions, server actions
+  DATA-MODEL.md           Tables, enums, visibility rules, auth tables
+  FEATURES.md             Routes, permissions, server actions, authentication
   FLOWS.md                Automation flows
   TESTING.md              Checks and manual test script
   DECISIONS.md            Why it is built this way
   POWER-PLATFORM-BLUEPRINT.md   Guide to rebuilding this in the real Power Platform
 AGENTS.md, CLAUDE.md      Auto-loaded by AI tools; point at docs/
-data/db.json              Runtime database, gitignored, created from seed on first read
+data/helpdesk.db          Local SQLite database, gitignored, created and seeded on first use
 ```
 
+## How data flows
+1. A page calls `requireUser()` (redirects to `/login` if there is no valid session), then `await readDb()` to get a plain `Database` object.
+2. A server action calls `requireUser()`, checks the role, then `await mutate((db) => { ... })`. `mutate` opens a write transaction, loads the `Database`, runs your function, and writes back only the rows that changed. If your function throws, everything rolls back.
+3. Flows are plain functions over the `db` object, called from inside `mutate`, so a change and its flow effects commit together.
+4. Password hashes and session tokens live in `auth_*` tables that are never loaded into the `Database` object.
+
 ## Conventions
-- **Mutations** go in `src/app/actions.ts` only. Each action calls `currentUser()`, checks the role, validates input, mutates via `mutate()`, then calls `revalidatePath`.
-- **Role checks**: `canWorkTickets` (agent or manager) and `canApprove` (manager) in `session.ts`. Employees can only see their own tickets, and this is enforced both in list pages and in `tickets/[id]` (404).
+- **Mutations** go in `src/app/actions.ts` only (auth in `auth-actions.ts`). Each action calls `requireUser()`, checks the role, validates and length-limits input, mutates via `mutate()`, then calls `revalidatePath`.
+- **Never trust the form**: re-check every id against the database inside `mutate` (category exists, assignee is staff, asset is allowed for the user).
+- **Role checks**: `canWorkTickets` (agent or manager) and `canApprove` (manager) in `session.ts`. Employees can only see their own tickets, enforced in list pages and in `tickets/[id]` (404).
 - **Pure logic** (filtering, overdue checks) lives in `lib/dataverse/queries.ts`. The `react-hooks/purity` lint rule forbids `Date.now()` in components, so anything time-dependent goes there.
-- **Automations** go in `lib/flows/index.ts`, take the `db` object so they run inside one `mutate()`, and call `logRun`.
-- **Adding a table**: add the type and the `Database` field in `types.ts`, seed rows in `seed.ts`, and a default in `readDb()` (so old `db.json` files still load), then update `docs/POWER-PLATFORM-BLUEPRINT.md`.
+- **Automations** go in `lib/flows/index.ts`, take the `db` object, and call `logRun`.
+- **Adding a table or column**: update `types.ts` and `schema.ts` together (every field of a row type needs a column), seed it in `seed.ts`, set an `orderBy` that matches how code expects the array ordered, add tests, and update `DATA-MODEL.md` and the blueprint. `CREATE TABLE IF NOT EXISTS` does not alter existing tables, so a changed column on an existing database needs a real migration.
 - **UI**: reuse `ui.tsx` primitives. Every form control needs a label or `aria-label`.
 - **Commits**: small, one logical change each, with a clear message.
 
