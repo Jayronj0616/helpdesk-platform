@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createAccount, setPassword } from "@/lib/auth/credentials";
-import { changeUserRole } from "@/lib/dataverse/admin";
+import { changeUserRole, setUserActive } from "@/lib/dataverse/admin";
+import { destroyUserSessions } from "@/lib/auth/sessions";
 import { mutate } from "@/lib/dataverse/store";
 import { ROLES, type Role } from "@/lib/dataverse/types";
 import type { FormState } from "@/lib/form-state";
@@ -38,6 +39,16 @@ export async function setUserRoleAction(formData: FormData): Promise<void> {
   const userId = String(formData.get("userId") ?? "");
   const role = String(formData.get("role") ?? "");
   await mutate((db) => changeUserRole(db, actor.id, userId, role));
+  revalidatePath("/", "layout");
+}
+
+export async function setUserActiveAction(formData: FormData): Promise<void> {
+  const actor = await requireManager();
+  const userId = String(formData.get("userId") ?? "");
+  const active = formData.get("active") === "1";
+  const result = await mutate((db) => setUserActive(db, actor.id, userId, active));
+  // Deactivation takes effect immediately: their sessions are removed, and getSessionUser also refuses inactive users.
+  if (result.ok && !active) await destroyUserSessions(userId);
   revalidatePath("/", "layout");
 }
 
