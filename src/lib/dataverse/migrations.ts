@@ -28,6 +28,12 @@ export const MIGRATIONS: Migration[] = [
       "ALTER TABLE tickets ADD COLUMN rated_at TEXT",
     ],
   },
+  {
+    version: 4,
+    description: "Add tickets.waiting_since so the SLA clock can pause while a ticket waits on the customer",
+    // Tickets already in Waiting are paused from their last update, the best information the old schema has.
+    statements: ["ALTER TABLE tickets ADD COLUMN waiting_since TEXT", "UPDATE tickets SET waiting_since = updated_at WHERE status = 'waiting'"],
+  },
 ];
 
 export const LATEST_VERSION = Math.max(1, ...MIGRATIONS.map((m) => m.version));
