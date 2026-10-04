@@ -25,13 +25,21 @@ Tables are created automatically on the first request, so there is no schema ste
 
 With `DEMO_MODE=0` and no `ADMIN_EMAIL` or `ADMIN_PASSWORD`, the first request fails with a clear error instead of starting a system nobody can administer. After signing in as that manager, use **Users** to create agents and managers, and rotate the admin password on the Account page.
 
+## 2b. Password reset by email (optional)
+Without email, the "Forgot your password?" link is hidden in production, and managers reset passwords from **Users**. To turn it on:
+- `APP_URL` = the public address, for example `https://your-app.vercel.app` (required: reset links are built from it, never from the request's Host header, so they cannot be poisoned)
+- `RESEND_API_KEY` and `MAIL_FROM` from https://resend.com (the sender must be on a domain you verified there)
+
+The Resend call is covered by unit tests with a mocked `fetch`, but it has **not** been run against the real service. After deploying, request a reset for your own address and read the first mail before relying on it.
+
 ## 3. Deploy
 1. Push the repo to GitHub (already done) and import it in Vercel. The Next.js preset is detected automatically.
 2. Add environment variables (Project, Settings, Environment Variables):
    - `DATABASE_URL` = the `libsql://...` URL
    - `DATABASE_AUTH_TOKEN` = the token
    - plus the mode variables from the table above
-3. Deploy, open the site, and sign in.
+3. Deploy, then open `/api/health`: `{"status":"ok"}` means the database is reachable, migrated and seeded. A bare 503 means something is wrong (check the function logs, for example a missing `ADMIN_EMAIL`).
+4. Open the site and sign in.
 
 ## 4. Things to know
 - **Seeding happens once**, on the first request, guarded by a `seeded` flag in the database. Changing `DEMO_PASSWORD` or `ADMIN_PASSWORD` later does not change existing accounts; use the Account page or Users, Reset password.
