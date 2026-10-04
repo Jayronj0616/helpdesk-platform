@@ -50,6 +50,9 @@ describe("GET /api/cron/maintenance", () => {
     expect(res.headers.get("Cache-Control")).toBe("no-store");
     const body = await res.json();
     expect(body).toMatchObject({ status: "ok", closed: 1 });
+    // the flows queued emails (escalation, close) and the job delivered them, into the dev outbox here
+    expect(body.emails).toMatchObject({ failed: 0 });
+    expect(body.emails.sent).toBeGreaterThanOrEqual(2);
     expect(body.escalated).toBeGreaterThanOrEqual(1); // seeded ticket 1001 is overdue
 
     const db = await store.readDb(["tickets", "flowRuns"]);

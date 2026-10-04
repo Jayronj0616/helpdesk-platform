@@ -44,7 +44,7 @@ describe("readDb with a list of tables", () => {
 
   it("a plain readDb() still returns everything, including the ticket counter", async () => {
     const full = await store.readDb();
-    expect(Object.keys(full).sort()).toEqual(["assetRequests", "assets", "categories", "comments", "flowRuns", "nextTicketNumber", "tickets", "users"]);
+    expect(Object.keys(full).sort()).toEqual(["assetRequests", "assets", "categories", "comments", "flowRuns", "nextTicketNumber", "notifications", "tickets", "users"]);
   });
 
   it("an empty list is allowed and returns nothing", async () => {

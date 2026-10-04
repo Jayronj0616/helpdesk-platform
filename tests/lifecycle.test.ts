@@ -36,7 +36,7 @@ describe("reopenTicket", () => {
     const { db } = setup();
     reopenTicket(db, "u1", "t3", "Still broken.", NOW);
     expect(db.flowRuns[0]).toMatchObject({ flow: "When a ticket is reopened", trigger: "Ticket #1003" });
-    expect(db.flowRuns[0].actions.join(" ")).toContain("Sent email to ana@contoso.test");
+    expect(db.flowRuns[0].actions.join(" ")).toContain("Queued email to ana@contoso.test");
   });
 
   it("sends it to the new queue and tells the manager when the assignee is gone", () => {
@@ -44,7 +44,7 @@ describe("reopenTicket", () => {
     db.users.find((u) => u.id === "u3")!.active = false;
     reopenTicket(db, "u1", "t3", "Still broken.", NOW);
     expect(t).toMatchObject({ status: "new", assigneeId: null });
-    expect(db.flowRuns[0].actions.join(" ")).toContain("Sent email to dina@contoso.test");
+    expect(db.flowRuns[0].actions.join(" ")).toContain("Queued email to dina@contoso.test");
   });
 
   it("sends it to the new queue when it was never assigned, or the assignee is no longer staff", () => {

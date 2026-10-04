@@ -208,7 +208,7 @@ describe("closeStaleResolved", () => {
     byNumber(db, 1003).resolvedAt = daysAgo(9);
     closeStaleResolved(db, NOW, "scheduled");
     expect(db.flowRuns[0]).toMatchObject({ flow: "Close resolved tickets", trigger: "Scheduled run (daily)" });
-    expect(db.flowRuns[0].actions.join(" ")).toContain("Sent email to maria@contoso.test: ticket #1003 was closed");
+    expect(db.flowRuns[0].actions.join(" ")).toContain("Queued email to maria@contoso.test: Ticket #1003 was closed");
   });
 
   it("logs a run even when nothing is old enough", () => {
