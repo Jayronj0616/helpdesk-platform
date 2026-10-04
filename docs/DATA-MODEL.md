@@ -6,7 +6,7 @@ Source of truth is `src/lib/dataverse/types.ts`. This doc explains the meaning a
 
 | Table | Key fields | Notes |
 |---|---|---|
-| `users` | id, name, email, role (`employee`/`agent`/`manager`), department | Demo users u1..u5 are seeded; self-registered users get generated ids and are always employees. Role drives permissions. Email is unique. |
+| `users` | id, name, email, role (`employee`/`agent`/`manager`), department, active | Demo users u1..u5 are seeded; self-registered users get generated ids and are always employees. Role drives permissions. Email is unique. `active=false` accounts cannot sign in (same answer as a wrong password), lose their sessions at once, and are never offered as assignees; their name stays on past tickets and comments. |
 | `categories` | id, name | Reference data |
 | `tickets` | id, number (autoincrement from `nextTicketNumber`), title, description, requesterId, assigneeId?, categoryId, priority, status, assetId?, createdAt, updatedAt, dueAt, resolvedAt?, escalated | `dueAt` is set by the "ticket created" flow from SLA hours |
 | `comments` | id, ticketId, authorId? (null for system), body, kind (`comment`/`system`), internal, createdAt | `system` = audit trail written by actions and flows. `internal` = staff-only note. |
@@ -41,7 +41,12 @@ Kept out of the `Database` object on purpose, so hashes and tokens never reach a
 | `auth_credentials` | user_id, password_hash | scrypt, format `scrypt$N$r$p$salt$hash` |
 | `auth_sessions` | token_hash, user_id, expires_at | SHA-256 of the cookie token, 7-day expiry, expired rows purged on sign-in |
 
-Deleting a user (only `resetDb` does) also deletes their credentials and sessions.
+Deleting a user (only `resetDb` does) also deletes their credentials and sessions. Everyone else is deactivated, never deleted.
+
+| `auth_attempts` | key_hash, at | Sign-in, register and password-change attempts for rate limiting. The key is a SHA-256 of IP and email, never the plain values. Rows older than the window are deleted on each attempt. |
+
+## Schema versions
+`meta.schema_version` records the schema version. Version 1 is the schema before migrations existed, and a database that has users but no version is treated as version 1. `migrations.ts` lists the changes: v2 added `users.active`. On connect, a database with no `users` table is created from `schema.ts` and stamped with the latest version; an older one has the pending migrations applied, each in one batch together with its version bump, so a crash cannot leave it half migrated, and two instances starting together are safe.
 
 ## Writes
 `mutate(fn)` runs in one write transaction: load, run `fn`, write back only changed rows (upserts parent-first, deletes child-first). Calls in the same process are queued, and the transaction protects against other processes on the same file. Load-everything-per-request is fine for a demo; for large data, replace hot paths with targeted queries.
