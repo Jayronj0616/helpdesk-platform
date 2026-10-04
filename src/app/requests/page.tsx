@@ -1,4 +1,5 @@
 import { createAssetRequest, decideRequest } from "@/app/actions";
+import { requestTypes } from "@/lib/dataverse/admin";
 import { readDb } from "@/lib/dataverse/store";
 import { canApprove, canWorkTickets, requireUser } from "@/lib/session";
 import { Badge, Card, PageTitle, btnCls, btnGhostCls, fmt, inputCls, label, requestTone } from "@/components/ui";
@@ -9,7 +10,7 @@ export default async function Requests() {
   const db = await readDb();
   const requests = canWorkTickets(user) ? db.assetRequests : db.assetRequests.filter((r) => r.requesterId === user.id);
   const name = (id: string | null) => db.users.find((u) => u.id === id)?.name ?? "-";
-  const types = [...new Set(db.assets.map((a) => a.type))];
+  const types = requestTypes(db);
 
   return (
     <>
