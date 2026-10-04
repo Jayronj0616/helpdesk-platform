@@ -67,3 +67,21 @@ test("registration rejects a short password and a duplicate email", async ({ pag
   await expect(page.getByRole("alert").filter({ hasText: "already exists" })).toBeVisible();
   await expect(page.getByLabel("Full name")).toHaveValue("Dup Person");
 });
+
+test("responses carry the security headers", async ({ request }) => {
+  const res = await request.get("/login");
+  const h = res.headers();
+  expect(h["x-content-type-options"]).toBe("nosniff");
+  expect(h["x-frame-options"]).toBe("DENY");
+  expect(h["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+  expect(h["content-security-policy"]).toContain("frame-ancestors 'none'");
+  expect(h["content-security-policy"]).toContain("form-action 'self'");
+  expect(h["x-powered-by"]).toBeUndefined();
+});
+
+test("the health endpoint is public and reveals nothing but its status", async ({ request }) => {
+  const res = await request.get("/api/health");
+  expect(res.status()).toBe(200);
+  expect(await res.json()).toEqual({ status: "ok" });
+  expect(res.headers()["cache-control"]).toContain("no-store");
+});
