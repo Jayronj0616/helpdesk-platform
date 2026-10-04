@@ -42,3 +42,8 @@ next-env.d.ts
 
 # local database
 /data/db.json
+
+# SQLite database files
+/data/*.db
+/data/*.db-*
+!.env.example
