@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { seedDatabase } from "@/lib/dataverse/seed";
-import { REOPEN_WINDOW_DAYS, canReopen, reopenTicket } from "@/lib/dataverse/lifecycle";
+import { REOPEN_WINDOW_DAYS, applyStatusChange, canReopen, reopenTicket } from "@/lib/dataverse/lifecycle";
 import { SLA_HOURS } from "@/lib/dataverse/types";
 
 const NOW = new Date("2026-10-04T12:00:00.000Z");
@@ -119,5 +119,91 @@ describe("canReopen", () => {
     expect(canReopen({ ...t, status: "in_progress" }, "u1", NOW.getTime())).toBe(false);
     expect(canReopen({ ...t, resolvedAt: null }, "u1", NOW.getTime())).toBe(false);
     expect(canReopen(t, "u1", NOW.getTime() + 10 * 86_400_000)).toBe(false);
+  });
+});
+
+describe("applyStatusChange and the SLA pause", () => {
+  const T0 = new Date("2026-10-04T08:00:00.000Z");
+  const later = (hours: number) => new Date(T0.getTime() + hours * 3_600_000);
+  function ticket() {
+    const db = seedDatabase();
+    const t = db.tickets.find((x) => x.number === 1006)!; // in progress, low priority
+    t.dueAt = later(10).toISOString();
+    return t;
+  }
+
+  it("pausing records when the clock stopped and says so", () => {
+    const t = ticket();
+    expect(applyStatusChange(t, "waiting", T0)).toBe("SLA clock paused while waiting for the customer");
+    expect(t).toMatchObject({ status: "waiting", waitingSince: T0.toISOString() });
+    expect(t.dueAt).toBe(later(10).toISOString()); // unchanged until it resumes
+  });
+
+  it("resuming moves the due date back by the time spent waiting", () => {
+    const t = ticket();
+    applyStatusChange(t, "waiting", T0);
+    const note = applyStatusChange(t, "in_progress", later(6));
+    expect(note).toBe("SLA clock resumed: due date moved 6h later for the time spent waiting");
+    expect(t.dueAt).toBe(later(16).toISOString());
+    expect(t.waitingSince).toBeNull();
+    expect(t.status).toBe("in_progress");
+  });
+
+  it("resuming to new works the same way", () => {
+    const t = ticket();
+    applyStatusChange(t, "waiting", T0);
+    applyStatusChange(t, "new", later(2));
+    expect(t.dueAt).toBe(later(12).toISOString());
+  });
+
+  it("several waits add up", () => {
+    const t = ticket();
+    applyStatusChange(t, "waiting", T0);
+    applyStatusChange(t, "in_progress", later(1)); // paused 1h
+    applyStatusChange(t, "waiting", later(2));
+    applyStatusChange(t, "in_progress", later(5)); // paused 3h
+    expect(t.dueAt).toBe(later(14).toISOString());
+  });
+
+  it("resolving or closing from waiting ends the pause without moving the due date", () => {
+    for (const end of ["resolved", "closed"] as const) {
+      const t = ticket();
+      applyStatusChange(t, "waiting", T0);
+      expect(applyStatusChange(t, end, later(4))).toBeNull();
+      expect(t).toMatchObject({ status: end, waitingSince: null, resolvedAt: later(4).toISOString() });
+      expect(t.dueAt).toBe(later(10).toISOString());
+    }
+  });
+
+  it("does nothing when the status does not change", () => {
+    const t = ticket();
+    expect(applyStatusChange(t, "in_progress", later(1))).toBeNull();
+    expect(t.updatedAt).not.toBe(later(1).toISOString());
+    applyStatusChange(t, "waiting", T0);
+    expect(applyStatusChange(t, "waiting", later(3))).toBeNull();
+    expect(t.waitingSince).toBe(T0.toISOString()); // the pause start is not reset by saving again
+  });
+
+  it("resolved and reopened tickets keep their resolved time rules", () => {
+    const t = ticket();
+    applyStatusChange(t, "resolved", later(1));
+    expect(t.resolvedAt).toBe(later(1).toISOString());
+    applyStatusChange(t, "in_progress", later(2));
+    expect(t.resolvedAt).toBeNull();
+  });
+
+  it("a ticket moved back from an unknown pause start never gets a negative extension", () => {
+    const t = ticket();
+    t.status = "waiting";
+    t.waitingSince = later(5).toISOString(); // in the future relative to the change
+    applyStatusChange(t, "in_progress", T0);
+    expect(new Date(t.dueAt).getTime()).toBeGreaterThanOrEqual(later(10).getTime());
+  });
+
+  it("reopening clears any pause", () => {
+    const { db, t } = setup();
+    t.waitingSince = hoursBefore(3);
+    reopenTicket(db, "u1", "t3", "Still broken.", NOW);
+    expect(t.waitingSince).toBeNull();
   });
 });

@@ -7,7 +7,7 @@ function newTicket(db: Database, priority: Priority): Ticket {
   const now = new Date().toISOString();
   const t: Ticket = {
     id: "tx", number: 9000, title: "New", description: "", requesterId: "u1", assigneeId: null, categoryId: "c1",
-    priority, status: "new", assetId: null, createdAt: now, updatedAt: now, dueAt: now, resolvedAt: null, escalated: false, rating: null, ratingComment: null, ratedAt: null,
+    priority, status: "new", assetId: null, createdAt: now, updatedAt: now, dueAt: now, resolvedAt: null, escalated: false, rating: null, ratingComment: null, ratedAt: null, waitingSince: null,
   };
   db.tickets.unshift(t);
   return t;
@@ -105,6 +105,21 @@ describe("escalateOverdue", () => {
     const db = seedDatabase();
     escalateOverdue(db);
     for (const n of [1002, 1004, 1005, 1006]) expect(db.tickets.find((t) => t.number === n)!.escalated).toBe(false);
+  });
+
+  it("skips tickets that are waiting on the customer", () => {
+    const db = seedDatabase();
+    const t1 = db.tickets.find((t) => t.number === 1001)!; // overdue and in progress
+    t1.status = "waiting";
+    expect(escalateOverdue(db)).toBe(0);
+    expect(t1).toMatchObject({ escalated: false, priority: "high" });
+  });
+
+  it("can be run for a given moment", () => {
+    const db = seedDatabase();
+    const farFuture = Date.now() + 365 * 86_400_000;
+    expect(escalateOverdue(db, farFuture)).toBeGreaterThan(1); // everything open is overdue a year from now, except waiting
+    expect(db.tickets.find((t) => t.number === 1002)!.escalated).toBe(false); // 1002 is waiting
   });
 
   it("logs a run even when nothing is overdue", () => {

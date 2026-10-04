@@ -56,6 +56,19 @@ describe("migrations", () => {
     expect(row).toMatchObject({ title: "Old ticket", rating: null, rating_comment: null, rated_at: null });
   });
 
+  it("adds waiting_since, pausing tickets that are already waiting from their last update", async () => {
+    const c = await v1Database("waiting.db");
+    await c.execute("INSERT INTO tickets VALUES ('t2', 1002, 'Waiting one', 'd', 'u1', NULL, 'c1', 'low', 'waiting', NULL, 'a', '2026-10-01T10:00:00.000Z', 'c', NULL, 0)");
+    expect(await columns(c, "tickets")).not.toContain("waiting_since");
+
+    await migrations.runMigrations(c, false);
+
+    expect(await columns(c, "tickets")).toContain("waiting_since");
+    const rows = (await c.execute("SELECT id, waiting_since FROM tickets ORDER BY id")).rows;
+    expect(rows.find((r) => r.id === "t1")!.waiting_since).toBeNull(); // not waiting
+    expect(rows.find((r) => r.id === "t2")!.waiting_since).toBe("2026-10-01T10:00:00.000Z");
+  });
+
   it("upgrades a version 2 database (users.active present) to version 3 without touching users", async () => {
     const c = await v1Database("v2.db");
     await c.batch(["ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1", "INSERT INTO meta VALUES ('schema_version', '2')"], "write");

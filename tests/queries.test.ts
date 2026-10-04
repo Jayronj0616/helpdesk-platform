@@ -11,6 +11,11 @@ describe("isOverdue", () => {
   it("flags open tickets past their due date", () => expect(isOverdue(t(1001))).toBe(true));
   it("ignores open tickets still within SLA", () => expect(isOverdue(t(1002))).toBe(false));
   it("ignores closed tickets even when past due", () => expect(isOverdue(t(1004))).toBe(false));
+  it("ignores tickets that are waiting on the customer, because their SLA clock is paused", () => {
+    const waiting = { ...t(1001), status: "waiting" as const, dueAt: new Date(Date.now() - 3_600_000).toISOString() };
+    expect(isOverdue({ ...waiting, status: "in_progress" })).toBe(true);
+    expect(isOverdue(waiting)).toBe(false);
+  });
 });
 
 describe("filterTickets", () => {
