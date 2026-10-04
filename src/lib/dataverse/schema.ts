@@ -117,6 +117,13 @@ export const AUTH_SQL = [
      FOREIGN KEY (user_id) REFERENCES users(id)
    )`,
   `CREATE INDEX IF NOT EXISTS idx_sessions_user ON auth_sessions(user_id)`,
+  `CREATE TABLE IF NOT EXISTS auth_reset_tokens (
+     token_hash TEXT PRIMARY KEY,
+     user_id TEXT NOT NULL,
+     expires_at INTEGER NOT NULL,
+     FOREIGN KEY (user_id) REFERENCES users(id)
+   )`,
+  `CREATE TABLE IF NOT EXISTS dev_outbox (id TEXT PRIMARY KEY, at INTEGER NOT NULL, to_addr TEXT NOT NULL, subject TEXT NOT NULL, body TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS auth_attempts (key_hash TEXT NOT NULL, at INTEGER NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS idx_attempts_key ON auth_attempts(key_hash, at)`,
   `CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
