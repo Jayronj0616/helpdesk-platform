@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { addTicketComment, updateTicket } from "@/app/actions";
+import { RatingForm } from "@/components/ActionForms";
+import { canRate } from "@/lib/dataverse/feedback";
 import { readDb } from "@/lib/dataverse/store";
 import { visibleComments } from "@/lib/dataverse/comments";
 import { canWorkTickets, requireUser } from "@/lib/session";
@@ -70,6 +72,27 @@ export default async function TicketDetail({ params }: PageProps<"/tickets/[id]"
           )}
         </Card>
       </div>
+
+      {(t.rating !== null || canRate(t, user.id) || (editable && (t.status === "resolved" || t.status === "closed"))) && (
+        <Card title="Customer satisfaction" className="mt-4">
+          {t.rating !== null ? (
+            <div className="text-sm">
+              <p aria-label={`Rated ${t.rating} out of 5`}>
+                <span aria-hidden="true" className="text-lg tracking-wide text-amber-500">{"★".repeat(t.rating)}{"☆".repeat(5 - t.rating)}</span>
+                <span className="ml-2 text-slate-600">{t.rating} out of 5</span>
+              </p>
+              {t.ratingComment && <p className="mt-2 whitespace-pre-wrap">{t.ratingComment}</p>}
+              {t.ratedAt && <p className="mt-1 text-xs text-slate-500">Rated by {name(t.requesterId)} on {fmt(t.ratedAt)}</p>}
+              {/* Saving swaps the form for this view, so this is the requester's confirmation. */}
+              {t.requesterId === user.id && <p className="mt-2 text-xs text-slate-500">Thanks for letting us know.</p>}
+            </div>
+          ) : canRate(t, user.id) ? (
+            <RatingForm ticketId={t.id} />
+          ) : (
+            <p className="text-sm text-slate-600">Not rated yet.</p>
+          )}
+        </Card>
+      )}
 
       <Card title={`Activity (${thread.length})`} className="mt-4">
         <ol className="mb-4 space-y-3">
