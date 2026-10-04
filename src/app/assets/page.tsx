@@ -1,9 +1,11 @@
 import { readDb } from "@/lib/dataverse/store";
+import { requireUser } from "@/lib/session";
 import { Badge, PageTitle, assetTone, label } from "@/components/ui";
 
 // Asset register: a Dataverse table view.
-export default function Assets() {
-  const db = readDb();
+export default async function Assets() {
+  await requireUser();
+  const db = await readDb();
   const name = (id: string | null) => db.users.find((u) => u.id === id)?.name ?? "-";
   return (
     <>
