@@ -105,6 +105,9 @@ export const SLA_HOURS: Record<Priority, number> = {
   low: 72,
 };
 
+/** A resolved ticket can be reopened for this long, and is closed automatically after it. */
+export const REOPEN_WINDOW_DAYS = 7;
+
 export const TICKET_STATUSES: TicketStatus[] = ["new", "in_progress", "waiting", "resolved", "closed"];
 export const ROLES: Role[] = ["employee", "agent", "manager"];
 export const ASSET_STATUSES: AssetStatus[] = ["available", "assigned", "repair", "retired"];

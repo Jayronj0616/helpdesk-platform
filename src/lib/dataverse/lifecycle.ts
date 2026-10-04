@@ -1,5 +1,5 @@
 import type { Database, Ticket, TicketStatus } from "./types";
-import { SLA_HOURS } from "./types";
+import { REOPEN_WINDOW_DAYS, SLA_HOURS } from "./types";
 import { addComment, addSystemEntry } from "./comments";
 import { onTicketReopened } from "../flows";
 import type { Result } from "./admin";
@@ -7,7 +7,7 @@ import type { Result } from "./admin";
 // Reopening: the requester says a resolved ticket is not actually fixed. Closed tickets are final (staff
 // close them on purpose), and a very old resolution should be a new ticket, so there is a window.
 
-export const REOPEN_WINDOW_DAYS = 7;
+export { REOPEN_WINDOW_DAYS };
 export const MAX_REOPEN_REASON = 1000;
 
 export function canReopen(ticket: Ticket, userId: string, now = Date.now()): boolean {
