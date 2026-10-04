@@ -5,35 +5,37 @@ Update this file as part of every task: tick the box, add a one-line note, and m
 Status key: `[x]` done, `[~]` in progress, `[ ]` to do.
 
 ## Done
-- [x] Dataverse-style data layer (types, seed, JSON store)
-- [x] Persona switcher and role checks (employee, agent, manager)
-- [x] Dashboard with KPI tiles and charts
-- [x] Tickets: list, new, detail, status and assignee edit
+- [x] Dataverse-style data layer (types, seed)
+- [x] Dashboard with KPI tiles, bar charts and a 7-day ticket trend
+- [x] Tickets: list, new, detail, status, assignee and related-asset edit
+- [x] Ticket search, filters, sorting and pagination (state in the URL)
+- [x] Ticket comments (public and internal) and an audit trail of status, assignee, asset and flow changes
 - [x] Assets register
 - [x] Asset requests with manager approval
 - [x] Flows: ticket created, escalate overdue, asset request decided, with run history
-- [x] Power Platform blueprint guide (including Comment table and audit logging)
+- [x] Power Platform blueprint guide (including Comment table, audit logging and the Entra ID sign-in note)
 - [x] Published to GitHub (Jayronj0616/helpdesk-platform)
-- [x] Ticket comments: public and internal notes, hidden from employees
-- [x] Audit trail: status, assignee and flow changes logged on the ticket
-- [x] Ticket search and filters (status, priority, category, assignee, overdue) and sorting, state in the URL
 - [x] AI handoff docs (AGENTS.md, CLAUDE.md, docs/*)
 - [x] Manager flows verified in a real browser (approve, escalate, reset)
-- [x] Priority dropdown ordered low to high
-- [x] Link a related asset when creating a ticket (permission-checked), and validate the category
-- [x] Pagination for the ticket list
-- [x] Vitest unit tests: 50 tests for queries, comments and flows
-- [x] Staff can change a ticket's related asset from the detail page (audited)
-- [x] Dashboard: tickets created per day, last 7 days
+- [x] Vitest unit tests (flows, queries, comments, password hashing, rate limiter, real SQLite database and auth)
+- [x] **Real database**: SQLite via libSQL (local file, Turso-compatible), transactional writes, foreign keys
+- [x] **Real authentication**: email and password, scrypt, hashed server-side sessions, HttpOnly cookie, rate limiting, employee-only registration, sign out
+- [x] Persona switcher removed; every page and action requires a session
+- [x] Demo mode flag (login hints and reset button) and `.env.example`
+- [x] Hardening found while migrating: category, assignee and request type validated against the database, input length caps
 
 ## Current
 Nothing in progress. Pick from the backlog.
 
 ## Backlog
 - [ ] Playwright end-to-end tests for the manual script in TESTING.md
-- [ ] Real authentication and a database (replace persona switcher and `data/db.json`); needs a decision on provider, see DECISIONS.md
 - [ ] README screenshots
-- [ ] Deploy (Vercel needs a hosted database first, because `data/db.json` needs a writable disk)
+- [ ] Deploy: needs a hosted Turso database (`DATABASE_URL`, `DATABASE_AUTH_TOKEN`), `DEMO_PASSWORD` changed, and a decision on `DEMO_MODE`
+- [ ] Admin page for managers to create or promote agent and manager accounts (today only the seed or a database insert can)
+- [ ] Password change and password reset (reset needs email sending)
+- [ ] Replace load-everything-per-request in `readDb()` with targeted queries if data grows
+- [ ] Shared rate limiter (Redis) and trusted-proxy handling of `x-forwarded-for` if running more than one instance
+- [ ] Real schema migrations (today `CREATE TABLE IF NOT EXISTS` only creates; it does not alter existing tables)
 
 ## Decisions
 See `docs/DECISIONS.md`.
