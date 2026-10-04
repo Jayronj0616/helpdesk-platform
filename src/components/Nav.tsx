@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { User } from "@/lib/dataverse/types";
-import { PersonaSwitcher } from "./PersonaSwitcher";
+import { logout } from "@/app/auth-actions";
 
 const LINKS = [
   { href: "/", label: "Dashboard" },
@@ -10,19 +10,24 @@ const LINKS = [
   { href: "/flows", label: "Flow runs" },
 ];
 
-export function Nav({ user, users }: { user: User; users: User[] }) {
+export function Nav({ user }: { user: User | null }) {
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
         <Link href="/" className="font-semibold text-indigo-700">HelpDesk Platform</Link>
-        <nav className="flex flex-wrap gap-4 text-sm text-slate-600">
-          {LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="hover:text-indigo-700">{l.label}</Link>
-          ))}
-        </nav>
-        <div className="ml-auto">
-          <PersonaSwitcher current={user} users={users} />
-        </div>
+        {user && (
+          <>
+            <nav className="flex flex-wrap gap-4 text-sm text-slate-600">
+              {LINKS.map((l) => (
+                <Link key={l.href} href={l.href} className="hover:text-indigo-700">{l.label}</Link>
+              ))}
+            </nav>
+            <form action={logout} className="ml-auto flex items-center gap-3 text-sm">
+              <span className="text-slate-600">{user.name} <span className="text-slate-400">({user.role})</span></span>
+              <button className="rounded border border-slate-300 bg-white px-3 py-1 hover:bg-slate-50">Sign out</button>
+            </form>
+          </>
+        )}
       </div>
     </header>
   );
