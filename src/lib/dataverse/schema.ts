@@ -53,7 +53,7 @@ export const TABLES: TableSpec[] = [
     columns: {
       id: "text", number: "int", title: "text", description: "text", requesterId: "text", assigneeId: "text",
       categoryId: "text", priority: "text", status: "text", assetId: "text", createdAt: "text", updatedAt: "text",
-      dueAt: "text", resolvedAt: "text", escalated: "bool", rating: "int", ratingComment: "text", ratedAt: "text",
+      dueAt: "text", resolvedAt: "text", escalated: "bool", rating: "int", ratingComment: "text", ratedAt: "text", waitingSince: "text",
     },
     constraints: {
       id: "PRIMARY KEY",

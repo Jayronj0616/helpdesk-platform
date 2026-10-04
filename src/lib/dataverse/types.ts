@@ -42,6 +42,8 @@ export interface Ticket {
   rating: number | null;
   ratingComment: string | null;
   ratedAt: string | null;
+  /** Set while the status is Waiting (on the customer): the SLA clock is paused from this moment. */
+  waitingSince: string | null;
 }
 
 export interface Asset {
