@@ -14,7 +14,7 @@ test("staff can export the tickets they are looking at, and employees cannot", a
 
   expect((await page.request.get("/tickets/export")).status()).toBe(401);
 
-  await loginAs(page, USERS.ana);
+  await loginAs(page, USERS.ben); // Ana is demoted by 04-admin, which runs first
   await page.goto("/tickets?q=vpn");
   const link = page.getByRole("link", { name: "Export CSV" });
   await expect(link).toHaveAttribute("href", "/tickets/export?q=vpn");
