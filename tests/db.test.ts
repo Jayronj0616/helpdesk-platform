@@ -170,6 +170,20 @@ describe("sessions", () => {
 });
 
 describe("resetDb", () => {
+  it("restores demo passwords and reactivates demo accounts that were changed or deactivated", async () => {
+    const { getDb } = await import("@/lib/dataverse/db");
+    expect(await (await import("@/lib/auth/credentials")).setPassword("u1", "changed-by-a-visitor-1")).toEqual({ ok: true });
+    await (await getDb()).execute("UPDATE users SET active = 0 WHERE id = 'u2'");
+    expect(await creds.authenticate("maria@contoso.test", PASSWORD)).toBeNull();
+    expect(await creds.authenticate("carlo@contoso.test", PASSWORD)).toBeNull();
+
+    await store.resetDb();
+
+    expect(await creds.authenticate("maria@contoso.test", PASSWORD)).not.toBeNull();
+    expect(await creds.authenticate("carlo@contoso.test", PASSWORD)).not.toBeNull();
+    expect(await creds.authenticate("maria@contoso.test", "changed-by-a-visitor-1")).toBeNull();
+  });
+
   it("restores the seed and removes self-registered users with their credentials and sessions", async () => {
     const reg = await creds.registerUser({ name: "Temp", email: "temp@example.com", department: "", password: "longenough1" });
     if (!reg.ok) throw new Error("setup failed");
