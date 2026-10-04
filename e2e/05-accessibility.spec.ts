@@ -21,7 +21,7 @@ test("public pages have no serious accessibility violations", async ({ page }) =
 
 test("employee pages have no serious accessibility violations", async ({ page }) => {
   await loginAs(page, USERS.maria);
-  for (const path of ["/", "/tickets", "/tickets/new", "/tickets/t1", "/assets", "/requests", "/flows", "/account"]) {
+  for (const path of ["/", "/tickets", "/tickets/new", "/tickets/t1", "/tickets/t4", "/assets", "/requests", "/flows", "/account"]) {
     await page.goto(path);
     await expectNoSeriousViolations(page);
   }
