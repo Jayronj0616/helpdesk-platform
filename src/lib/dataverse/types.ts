@@ -38,6 +38,10 @@ export interface Ticket {
   dueAt: string;
   resolvedAt: string | null;
   escalated: boolean;
+  /** 1 to 5, given once by the requester after the ticket is resolved. */
+  rating: number | null;
+  ratingComment: string | null;
+  ratedAt: string | null;
 }
 
 export interface Asset {
