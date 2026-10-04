@@ -35,6 +35,16 @@ export async function getSessionUser(token: string, now = Date.now()): Promise<U
   return { id: String(r.id), name: String(r.name), email: String(r.email), role: r.role as User["role"], department: String(r.department) };
 }
 
+/** Signs a user out everywhere, optionally keeping one session (the one making the change). */
+export async function destroyUserSessions(userId: string, exceptToken?: string): Promise<void> {
+  const client = await getDb();
+  await client.execute(
+    exceptToken
+      ? { sql: "DELETE FROM auth_sessions WHERE user_id = ? AND token_hash <> ?", args: [userId, hashToken(exceptToken)] }
+      : { sql: "DELETE FROM auth_sessions WHERE user_id = ?", args: [userId] },
+  );
+}
+
 export async function destroySession(token: string): Promise<void> {
   const client = await getDb();
   await client.execute({ sql: "DELETE FROM auth_sessions WHERE token_hash = ?", args: [hashToken(token)] });
