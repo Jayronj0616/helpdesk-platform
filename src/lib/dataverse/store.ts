@@ -1,10 +1,11 @@
 import crypto from "node:crypto";
-import type { Row, Transaction, InStatement } from "@libsql/client";
+import type { InStatement, ResultSet, Row } from "@libsql/client";
 import type { Database } from "./types";
-import { seedDatabase } from "./seed";
+import { seedDatabase, seedProduction } from "./seed";
+import { ADMIN_EMAIL, ADMIN_PASSWORD, DEMO_MODE, DEMO_PASSWORD } from "../config";
 import { getDb } from "./db";
 import { TABLES, snake, type TableSpec } from "./schema";
-import { hashPassword } from "../auth/password";
+import { MIN_PASSWORD_LENGTH, hashPassword } from "../auth/password";
 
 // SQL-backed stand-in for Dataverse. Pages and flows keep working on a plain `Database`
 // object: readDb() loads it, mutate() loads it, runs your change, and writes back only the
@@ -37,14 +38,19 @@ function toArgs(spec: TableSpec, obj: Record<string, unknown>) {
   });
 }
 
-async function load(tx: Pick<Transaction, "execute">): Promise<Database> {
+// One round trip: every table plus the ticket counter in a single batch.
+const LOAD_STATEMENTS: InStatement[] = [
+  ...TABLES.map((spec) => ({ sql: `SELECT * FROM ${spec.sql} ORDER BY ${spec.orderBy}`, args: [] })),
+  { sql: "SELECT value FROM meta WHERE key = 'nextTicketNumber'", args: [] },
+];
+
+function fromResults(results: ResultSet[]): Database {
   const db = { nextTicketNumber: 1, comments: [], users: [], categories: [], tickets: [], assets: [], assetRequests: [], flowRuns: [] } as Database;
-  for (const spec of TABLES) {
-    const res = await tx.execute(`SELECT * FROM ${spec.sql} ORDER BY ${spec.orderBy}`);
-    (db[spec.key] as unknown[]) = res.rows.map((r) => fromSql(spec, r));
-  }
-  const meta = await tx.execute("SELECT value FROM meta WHERE key = 'nextTicketNumber'");
-  if (meta.rows[0]) db.nextTicketNumber = Number(meta.rows[0].value);
+  TABLES.forEach((spec, i) => {
+    (db[spec.key] as unknown[]) = results[i].rows.map((r) => fromSql(spec, r));
+  });
+  const meta = results[TABLES.length].rows[0];
+  if (meta) db.nextTicketNumber = Number(meta.value);
   return db;
 }
 
@@ -93,9 +99,10 @@ export function diffStatements(db: Database, before: Record<string, Snapshot>, n
   return [...upserts, ...deletes, ...meta];
 }
 
-export const DEMO_PASSWORD = process.env.DEMO_PASSWORD ?? "helpdesk-demo";
-
-// First run: create the demo data and give the demo users a password.
+// First run. Demo mode seeds demo users (all with DEMO_PASSWORD) and sample data. With DEMO_MODE=0
+// it creates the categories and one manager from ADMIN_EMAIL and ADMIN_PASSWORD, and fails loudly
+// when those are missing so a deployment is never left with nobody who can sign in as admin.
+// Every statement is idempotent, so two server instances starting together cannot corrupt it.
 let seeded: Promise<void> | undefined;
 export function ensureSeeded(): Promise<void> {
   seeded ??= (async () => {
@@ -103,21 +110,34 @@ export function ensureSeeded(): Promise<void> {
     const done = await client.execute("SELECT value FROM meta WHERE key = 'seeded'");
     if (done.rows.length) return;
 
-    const seed = seedDatabase();
+    let seed;
+    let password: string;
+    if (DEMO_MODE) {
+      seed = seedDatabase();
+      password = DEMO_PASSWORD;
+    } else {
+      if (!ADMIN_EMAIL || !ADMIN_PASSWORD) throw new Error("DEMO_MODE=0 needs ADMIN_EMAIL and ADMIN_PASSWORD to create the first manager account.");
+      if (ADMIN_PASSWORD.length < MIN_PASSWORD_LENGTH) throw new Error(`ADMIN_PASSWORD must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      seed = seedProduction(ADMIN_EMAIL);
+      password = ADMIN_PASSWORD;
+    }
+
     const stmts = diffStatements(seed, {}, 0);
     for (const u of seed.users) {
-      const hash = await hashPassword(DEMO_PASSWORD);
-      stmts.push({ sql: "INSERT OR IGNORE INTO auth_credentials (user_id, password_hash) VALUES (?, ?)", args: [u.id, hash] });
+      stmts.push({ sql: "INSERT OR IGNORE INTO auth_credentials (user_id, password_hash) VALUES (?, ?)", args: [u.id, await hashPassword(password)] });
     }
     stmts.push({ sql: "INSERT OR IGNORE INTO meta (key, value) VALUES ('seeded', '1')", args: [] });
     await client.batch(stmts, "write");
-  })();
+  })().catch((err) => {
+    seeded = undefined; // let the next request retry instead of caching the failure
+    throw err;
+  });
   return seeded;
 }
 
 export async function readDb(): Promise<Database> {
   await ensureSeeded();
-  return load(await getDb());
+  return fromResults(await (await getDb()).batch(LOAD_STATEMENTS, "read"));
 }
 
 // All writes in this process run one at a time. The write transaction also protects
@@ -130,12 +150,12 @@ export function mutate<T>(fn: (db: Database) => T): Promise<T> {
     const client = await getDb();
     const tx = await client.transaction("write");
     try {
-      const db = await load(tx);
+      const db = fromResults(await tx.batch(LOAD_STATEMENTS));
       const before = snapshot(db);
       const nextBefore = db.nextTicketNumber;
       const result = fn(db);
       const stmts = diffStatements(db, before, nextBefore);
-      for (const s of stmts) await tx.execute(s);
+      if (stmts.length) await tx.batch(stmts);
       await tx.commit();
       return result;
     } catch (err) {
