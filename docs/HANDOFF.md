@@ -9,22 +9,26 @@ An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power P
 - Everything in PROGRESS.md under "Done" works. Run `git status -sb` to see whether anything is unpushed.
 - Real auth and a real database are in (SQLite via `@libsql/client`; hosted Turso in production, because Vercel's disk is read-only and temporary).
 - Admin features are in: `/admin/users` (managers), `/account` (everyone), asset add and edit (staff), and a production first-run mode (`DEMO_MODE=0` plus `ADMIN_EMAIL` and `ADMIN_PASSWORD`).
-- Verified: 109 unit tests pass (`npm test`), lint, types and build are clean, and the new features were run in a real browser (see TESTING.md).
+- Verified: 126 unit tests (`npm test`), 34 Playwright end-to-end tests (`npm run test:e2e`, real Chrome), lint (including type-aware promise rules), types and build are clean. GitHub Actions runs all of it on every push.
+- Also built: versioned schema migrations, user deactivation, a database-backed rate limiter, a reset that restores demo passwords.
 - **Not verified:** anything against a real Turso database. Only a local libSQL file has been used.
 
 ## Next step
-1. **Deploy** (needs the owner): follow `docs/DEPLOY.md`. After the first deploy, fix that doc with whatever differed, and check cold-start time and the latency of a write.
-2. Then, safe self-contained tasks: README screenshots, a Playwright suite for the manual script, a shared (Redis) rate limiter, deactivating users.
+1. **Check the first CI run** on GitHub (Actions tab). It has not been seen passing yet when this was written; if it fails, fix it first. The e2e job relies on Chrome being preinstalled on the runner.
+2. **Deploy** (needs the owner): follow `docs/DEPLOY.md`. After the first deploy, fix that doc with whatever differed, and check cold-start time and the latency of a write.
+3. Then: README screenshots, password reset by email (needs an email provider), targeted queries instead of loading every table.
 
 ## Gotchas
 - Next.js 16: `params` and `searchParams` are Promises; use `PageProps<"/route">` types. Read `node_modules/next/dist/docs/` if unsure.
 - `readDb()` and `mutate()` are **async**; always `await`. Every page and action starts with `requireUser()`. Admin actions go through `requireManager()` in `admin-actions.ts`.
 - `Date.now()` in a component fails lint (`react-hooks/purity`). Put time logic in `src/lib/dataverse/queries.ts`.
-- `schema.ts` and `types.ts` must stay in step. `CREATE TABLE IF NOT EXISTS` never alters an existing table, so a changed column needs a real migration (or delete `data/helpdesk.db` in development).
+- `schema.ts` and `types.ts` must stay in step. A new column on an existing table needs a numbered migration in `migrations.ts` as well (never edit a released one). New tables are created automatically.
 - Each table has an `orderBy` in `schema.ts` to keep arrays newest-first where the code relies on `unshift()`.
 - React 19 clears a form after every server action. Forms that can fail return the entered values (never a password) to refill them (`FormState.values`).
 - `config.ts` reads env vars at import time. Tests that need different env set it before a dynamic `import()`, one test file per scenario (vitest isolates modules per file).
 - Unit tests depend on the relative dates in `seed.ts`.
+- Async functions (`readDb`, `mutate`, the limiter, auth) must be awaited. TypeScript does not catch `if (!limiter.attempt(k))`, so the type-aware lint rules do; do not turn them off.
+- E2E tests share one database and run in file order (01 to 06); a new test must fit that order. Playwright reloads its config in each worker, so never delete the database unconditionally there.
 - Vitest 5 needs `@types/node` 22 or newer (already upgraded).
 - To sign in during testing: demo accounts and the shared password are on the login page (default `helpdesk-demo`). The browser tool can fill the login form; `form.requestSubmit()` through JavaScript works for inline forms.
 - Bash heredocs with quotes can fail in this environment, and `python` is a hanging Windows Store stub. Write files with the editor tools and use `node` scripts (a file, not `node -e`, when the text has apostrophes).

@@ -25,7 +25,14 @@ Status key: `[x]` done, `[~]` in progress, `[ ]` to do.
 - [x] **Account page**: change own password (current password required, other devices signed out)
 - [x] **Asset management** for staff: add assets (unique tag, normalised type) and change status and holder
 - [x] Request types no longer depend on the register (defaults plus register types), so a fresh production database works
-- [x] 109 unit tests (flows, queries, comments, admin rules, password hashing, rate limiter, real SQLite database, accounts, production first run)
+- [x] 126 unit tests (flows, queries, comments, admin rules, password hashing, rate limiter, migrations, real SQLite database, accounts, production first run)
+- [x] 34 Playwright end-to-end tests against the installed Chrome (auth, employee, staff, manager, admin, account, reset)
+- [x] GitHub Actions CI (lint, types, unit tests, build, e2e)
+- [x] **Versioned migrations** (`migrations.ts`, version in `meta`), safe on concurrent startup
+- [x] **Deactivate and reactivate users** (never delete): blocks sign-in, ends sessions, unassigns open tickets, hidden from assignee lists and flows
+- [x] **Database-backed rate limiter** (hashed keys), works across serverless instances
+- [x] Type-aware lint rules for forgotten awaits (caught a real unawaited limiter call)
+- [x] Demo reset now also restores demo passwords and reactivates demo accounts (found by the e2e tests)
 - [x] Everything above verified in a real browser, including access control (employees get 404 on `/admin/users`)
 
 ## Current
@@ -33,13 +40,9 @@ Nothing in progress. Pick from the backlog.
 
 ## Backlog
 - [ ] **Deploy** (needs the owner's accounts): create the Turso database, set the env vars from `docs/DEPLOY.md`, deploy, and record anything that differs from the doc (the Turso path is untested)
-- [ ] Playwright end-to-end tests for the manual script in TESTING.md
 - [ ] README screenshots
-- [ ] Shared rate limiter (Upstash Redis) for serverless, since the in-memory one resets per instance
 - [ ] Password reset by email (needs an email provider)
-- [ ] Deactivate (not delete) a user account
 - [ ] Replace load-everything-per-request in `readDb()` with targeted queries if data grows
-- [ ] Real schema migrations (today `CREATE TABLE IF NOT EXISTS` only creates; it does not alter existing tables)
 
 ## Decisions
 See `docs/DECISIONS.md`.
