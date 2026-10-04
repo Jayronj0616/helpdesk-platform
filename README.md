@@ -18,7 +18,7 @@ An IT helpdesk and asset tracker built with Next.js. It is structured like a Mic
 - **Flow: Asset request approval**: managers approve or reject. Approving assigns an available asset from stock.
 - **Flow runs**: every run and the actions it took.
 - **Assets**: IT staff add assets and change status and holder.
-- **Users** (managers): create staff accounts, change roles, reset passwords. **Account**: everyone can change their own password.
+- **Users** (managers): create staff accounts, change roles, reset passwords, deactivate accounts. **Account**: everyone can change their own password.
 
 Sign in as any demo account (listed on the login page) to try each role: employee, agent or manager. You can also register a new employee account.
 
@@ -33,7 +33,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. The SQLite database (`data/helpdesk.db`) is created and seeded on first use. Demo accounts and their password are shown on the login page. Copy `.env.example` to `.env.local` to change the database, the demo password, or to turn demo mode off. Run `npm test` for the test suite.
+Open http://localhost:3000. The SQLite database (`data/helpdesk.db`) is created and seeded on first use. Demo accounts and their password are shown on the login page. Copy `.env.example` to `.env.local` to change the database, the demo password, or to turn demo mode off. Run `npm test` for the unit tests and `npm run test:e2e` for the browser tests (they use your installed Chrome).
 
 ## Deploy
 
