@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { readDb } from "@/lib/dataverse/store";
 import { filterTickets, isOverdue, paginate, type TicketFilters } from "@/lib/dataverse/queries";
-import { canWorkTickets, currentUser } from "@/lib/session";
+import { canWorkTickets, requireUser } from "@/lib/session";
 import { Badge, PageTitle, btnCls, btnGhostCls, fmt, inputCls, label, priorityTone, statusTone } from "@/components/ui";
 import { PRIORITIES, type TicketStatus } from "@/lib/dataverse/types";
 
@@ -20,7 +20,8 @@ const pick = <T extends string>(v: string | undefined, allowed: readonly T[]) =>
 export default async function Tickets({ searchParams }: PageProps<"/tickets">) {
   const sp = await searchParams;
   const created = one(sp.created);
-  const [db, user] = [readDb(), await currentUser()];
+  const user = await requireUser();
+  const db = await readDb();
   const staff = canWorkTickets(user);
 
   const filters: TicketFilters = {

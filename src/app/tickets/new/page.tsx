@@ -1,13 +1,13 @@
 import { createTicket } from "@/app/actions";
 import { readDb } from "@/lib/dataverse/store";
 import { PRIORITIES, SLA_HOURS } from "@/lib/dataverse/types";
-import { canWorkTickets, currentUser } from "@/lib/session";
+import { canWorkTickets, requireUser } from "@/lib/session";
 import { Card, PageTitle, btnCls, inputCls, label } from "@/components/ui";
 
 // Employee-facing "submit a ticket" form: the canvas app equivalent.
 export default async function NewTicket() {
-  const { categories, assets: allAssets } = readDb();
-  const user = await currentUser();
+  const user = await requireUser();
+  const { categories, assets: allAssets } = await readDb();
   // Employees can only link equipment assigned to them; IT staff can link any active asset.
   const assets = canWorkTickets(user)
     ? allAssets.filter((a) => a.status !== "retired")

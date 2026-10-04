@@ -2,13 +2,14 @@ import { notFound } from "next/navigation";
 import { addTicketComment, updateTicket } from "@/app/actions";
 import { readDb } from "@/lib/dataverse/store";
 import { visibleComments } from "@/lib/dataverse/comments";
-import { canWorkTickets, currentUser } from "@/lib/session";
+import { canWorkTickets, requireUser } from "@/lib/session";
 import { Badge, Card, PageTitle, btnCls, fmt, inputCls, label, priorityTone, statusTone } from "@/components/ui";
 
 // Ticket form: the model-driven app "main form". Only agents and managers can edit.
 export default async function TicketDetail({ params }: PageProps<"/tickets/[id]">) {
   const { id } = await params;
-  const [db, user] = [readDb(), await currentUser()];
+  const user = await requireUser();
+  const db = await readDb();
   const t = db.tickets.find((x) => x.id === id);
   // Row-level security: employees can only open their own tickets.
   if (!t || (!canWorkTickets(user) && t.requesterId !== user.id)) notFound();
