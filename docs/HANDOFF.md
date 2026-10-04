@@ -9,13 +9,14 @@ An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power P
 - Everything in PROGRESS.md under "Done" works. Run `git status -sb` to see whether anything is unpushed.
 - Real auth and a real database are in (SQLite via `@libsql/client`; hosted Turso in production, because Vercel's disk is read-only and temporary).
 - Admin features are in: `/admin/users` (managers), `/account` (everyone), asset add and edit (staff), and a production first-run mode (`DEMO_MODE=0` plus `ADMIN_EMAIL` and `ADMIN_PASSWORD`).
-- Verified: 126 unit tests (`npm test`), 34 Playwright end-to-end tests (`npm run test:e2e`, real Chrome), lint (including type-aware promise rules), types and build are clean. GitHub Actions runs all of it on every push and is green (checked 2026-10-04). Setting it up found two Linux-only problems, both fixed: a Windows-generated lockfile missing `@emnapi/*` (pinned as dev dependencies), and `PageProps`/`LayoutProps` not existing on a fresh clone until `next typegen` runs (use `npm run typecheck`, never a bare `tsc`).
-- Also built: versioned schema migrations, user deactivation, a database-backed rate limiter, a reset that restores demo passwords.
-- **Not verified:** anything against a real Turso database. Only a local libSQL file has been used.
+- Verified: 156 unit tests (`npm test`), 45 Playwright end-to-end tests (`npm run test:e2e`, real Chrome, includes axe accessibility checks), lint (including type-aware promise rules), types and build are clean. GitHub Actions runs all of it on every push.
+- Also built: versioned schema migrations, user deactivation, a database-backed rate limiter, a reset that restores demo passwords, password reset by email (Resend, or a dev outbox), security headers, `/api/health`, generated README screenshots.
+- Production-build behaviour was checked by hand: without an email provider the reset pages and `/dev/outbox` are 404 and the login link is hidden.
+- **Not verified:** anything against a real Turso database (only a local libSQL file), and real email delivery through Resend (only unit tested with a mocked `fetch`).
 
 ## Next step
-1. **Deploy** (needs the owner): follow `docs/DEPLOY.md`. After the first deploy, fix that doc with whatever differed, and check cold-start time and the latency of a write.
-2. Then: README screenshots, password reset by email (needs an email provider), targeted queries instead of loading every table.
+1. **Deploy** (needs the owner): follow `docs/DEPLOY.md`. Afterwards open `/api/health`, fix the doc with whatever differed, and send yourself a password reset email to confirm Resend works.
+2. Then: send the notification emails the flows only simulate today (reuse `sendMail`), and targeted queries instead of loading every table.
 
 ## Gotchas
 - Next.js 16: `params` and `searchParams` are Promises; use `PageProps<"/route">` types. Read `node_modules/next/dist/docs/` if unsure.
@@ -32,6 +33,9 @@ An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power P
 - To sign in during testing: demo accounts and the shared password are on the login page (default `helpdesk-demo`). The browser tool can fill the login form; `form.requestSubmit()` through JavaScript works for inline forms.
 - Bash heredocs with quotes can fail in this environment, and `python` is a hanging Windows Store stub. Write files with the editor tools and use `node` scripts (a file, not `node -e`, when the text has apostrophes).
 - If `npm ci` fails in CI with a lockfile mismatch after adding a dependency on Windows, run `npm install --package-lock-only` and check for missing optional packages; regenerating on Linux (or WSL) is the clean fix.
+- The e2e password-reset test reads the link from `/dev/outbox`; if you add another test that triggers email, remember mail is written after the response (`after()`), so poll instead of reading once.
+- Before testing a production build on a port, make sure nothing else is listening there. A leftover server answers instead and gives misleading results.
+- Regenerate screenshots (`npm run screenshots`) after visible UI changes and commit them.
 - Windows: git prints CRLF warnings and may exit 255 on success. Check `git log`, not the exit code.
 - The user wants many small, single-purpose commits (they care about GitHub contributions).
 
