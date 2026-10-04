@@ -13,13 +13,14 @@ let dummyHash: Promise<string> | undefined;
 
 const toUser = (r: Record<string, unknown>): User => ({
   id: String(r.id), name: String(r.name), email: String(r.email), role: r.role as Role, department: String(r.department),
+  active: Number(r.active) === 1,
 });
 
 export async function authenticate(email: string, password: string): Promise<User | null> {
   await ensureSeeded();
   const client = await getDb();
   const res = await client.execute({
-    sql: `SELECT u.id, u.name, u.email, u.role, u.department, c.password_hash
+    sql: `SELECT u.id, u.name, u.email, u.role, u.department, u.active, c.password_hash
           FROM users u JOIN auth_credentials c ON c.user_id = u.id WHERE u.email = ?`,
     args: [normalizeEmail(email)],
   });
@@ -30,6 +31,8 @@ export async function authenticate(email: string, password: string): Promise<Use
     return null;
   }
   if (!(await verifyPassword(password, String(row.password_hash)))) return null;
+  // Deactivated accounts get the same answer as a wrong password, so the login page reveals nothing.
+  if (Number(row.active) !== 1) return null;
   return toUser(row);
 }
 
@@ -68,7 +71,7 @@ export async function createAccount(input: AccountInput, role: Role): Promise<Re
   const exists = await client.execute({ sql: "SELECT 1 FROM users WHERE email = ?", args: [email] });
   if (exists.rows.length) return { ok: false, error: "An account with this email already exists." };
 
-  const user: User = { id: newId("u"), name, email, role, department: department.slice(0, 60) };
+  const user: User = { id: newId("u"), name, email, role, department: department.slice(0, 60), active: true };
   const hash = await hashPassword(input.password);
   try {
     await client.batch(

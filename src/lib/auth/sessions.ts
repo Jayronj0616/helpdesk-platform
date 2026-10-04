@@ -27,12 +27,12 @@ export async function getSessionUser(token: string, now = Date.now()): Promise<U
   const client = await getDb();
   const res = await client.execute({
     sql: `SELECT u.id, u.name, u.email, u.role, u.department FROM auth_sessions s
-          JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ?`,
+          JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ? AND u.active = 1`,
     args: [hashToken(token), now],
   });
   const r = res.rows[0];
   if (!r) return null;
-  return { id: String(r.id), name: String(r.name), email: String(r.email), role: r.role as User["role"], department: String(r.department) };
+  return { id: String(r.id), name: String(r.name), email: String(r.email), role: r.role as User["role"], department: String(r.department), active: true };
 }
 
 /** Signs a user out everywhere, optionally keeping one session (the one making the change). */
