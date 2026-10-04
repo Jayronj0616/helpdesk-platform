@@ -5,6 +5,7 @@ import { newId } from "../dataverse/store";
 import { addSystemEntry } from "../dataverse/comments";
 import type { Database, Ticket, AssetRequest } from "../dataverse/types";
 import { SLA_HOURS } from "../dataverse/types";
+import { isOverdue } from "../dataverse/queries";
 
 function logRun(db: Database, flow: string, trigger: string, actions: string[]) {
   db.flowRuns.unshift({ id: newId("run"), flow, trigger, actions, at: new Date().toISOString() });
@@ -52,10 +53,10 @@ export function onTicketCreated(db: Database, ticket: Ticket) {
  *  - find open tickets past their SLA that are not yet escalated
  *  - bump priority one level and notify the manager
  */
-export function escalateOverdue(db: Database): number {
-  const now = Date.now();
+export function escalateOverdue(db: Database, now = Date.now()): number {
   const order: Ticket["priority"][] = ["low", "medium", "high", "critical"];
-  const overdue = db.tickets.filter((t) => OPEN.includes(t.status) && !t.escalated && new Date(t.dueAt).getTime() < now);
+  // isOverdue ignores tickets that are Waiting, because their SLA clock is paused.
+  const overdue = db.tickets.filter((t) => !t.escalated && isOverdue(t, now));
   const manager = db.users.find((u) => u.role === "manager" && u.active);
   const actions: string[] = [];
 
