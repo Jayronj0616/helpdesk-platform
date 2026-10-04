@@ -100,3 +100,21 @@ export function onAssetRequestDecided(db: Database, req: AssetRequest) {
 
   logRun(db, "When an asset request is decided", `Request ${req.id} ${req.status}`, actions);
 }
+
+/**
+ * Flow 4: "When a ticket is reopened"
+ *  - tell the assignee, or the manager when nobody holds the ticket
+ *  The caller has already reset the status and the SLA clock.
+ */
+export function onTicketReopened(db: Database, ticket: Ticket) {
+  const actions: string[] = [`SLA clock restarted: due in ${SLA_HOURS[ticket.priority]}h`];
+  const assignee = db.users.find((u) => u.id === ticket.assigneeId && u.active);
+  const manager = db.users.find((u) => u.role === "manager" && u.active);
+  if (assignee) {
+    actions.push(`Sent email to ${assignee.email}: ticket #${ticket.number} was reopened by the requester`);
+  } else {
+    actions.push(`Ticket #${ticket.number} has no active assignee, so it is back in the new queue`);
+    if (manager) actions.push(`Sent email to ${manager.email}: reopened ticket #${ticket.number} needs an owner`);
+  }
+  logRun(db, "When a ticket is reopened", `Ticket #${ticket.number}`, actions);
+}
