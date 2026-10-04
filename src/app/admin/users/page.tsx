@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { setUserRoleAction } from "@/app/admin-actions";
+import { setUserActiveAction, setUserRoleAction } from "@/app/admin-actions";
 import { CreateUserForm, ResetPasswordForm } from "@/components/ActionForms";
 import { Badge, Card, PageTitle, btnGhostCls, inputCls, label } from "@/components/ui";
 import { readDb } from "@/lib/dataverse/store";
@@ -17,16 +17,16 @@ export default async function AdminUsers() {
 
   return (
     <>
-      <PageTitle sub="Create accounts for IT staff, change roles, and reset passwords.">Users</PageTitle>
+      <PageTitle sub="Create accounts for IT staff, change roles, reset passwords, and deactivate accounts. Deactivated people cannot sign in, but their history stays.">Users</PageTitle>
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-3 lg:col-span-2">
           {db.users.map((u) => {
             const self = u.id === me.id;
             return (
-              <Card key={u.id}>
+              <Card key={u.id} className={u.active ? "" : "opacity-75"}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="text-sm">
-                    <p className="font-medium">{u.name} {self && <Badge tone="purple">You</Badge>}</p>
+                    <p className="font-medium">{u.name} {self && <Badge tone="purple">You</Badge>} {!u.active && <Badge tone="red">Deactivated</Badge>}</p>
                     <p className="text-slate-500">{u.email} · {u.department}</p>
                     {u.role !== "employee" && <p className="text-xs text-slate-400">{openText(u.id)}</p>}
                   </div>
@@ -38,7 +38,16 @@ export default async function AdminUsers() {
                     <button className={btnGhostCls} disabled={self} title={self ? "You cannot change your own role" : undefined}>Save role</button>
                   </form>
                 </div>
-                {!self && <div className="mt-3"><ResetPasswordForm userId={u.id} name={u.name} /></div>}
+                {!self && (
+                  <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+                    <ResetPasswordForm userId={u.id} name={u.name} />
+                    <form action={setUserActiveAction}>
+                      <input type="hidden" name="userId" value={u.id} />
+                      <input type="hidden" name="active" value={u.active ? "0" : "1"} />
+                      <button className={btnGhostCls} aria-label={`${u.active ? "Deactivate" : "Reactivate"} ${u.name}`}>{u.active ? "Deactivate" : "Reactivate"}</button>
+                    </form>
+                  </div>
+                )}
               </Card>
             );
           })}
