@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { seedDatabase } from "@/lib/dataverse/seed";
 import { SLA_HOURS, type Database, type Priority, type Ticket } from "@/lib/dataverse/types";
-import { escalateOverdue, onAssetRequestDecided, onTicketCreated } from "@/lib/flows";
+import { closeStaleResolved, escalateOverdue, onAssetRequestDecided, onTicketCreated, runMaintenance } from "@/lib/flows";
+import { canReopen } from "@/lib/dataverse/lifecycle";
 
 function newTicket(db: Database, priority: Priority): Ticket {
   const now = new Date().toISOString();
@@ -156,5 +157,75 @@ describe("onAssetRequestDecided", () => {
     const db = decide("rejected");
     expect(db.assets.find((x) => x.tag === "MN-0001")!.status).toBe("available");
     expect(db.flowRuns[0].actions[0]).toContain("rejected");
+  });
+});
+
+describe("closeStaleResolved", () => {
+  const NOW = Date.parse("2026-10-20T12:00:00.000Z");
+  const daysAgo = (d: number, extraHours = 0) => new Date(NOW - d * 86_400_000 - extraHours * 3_600_000).toISOString();
+  const byNumber = (db: Database, n: number) => db.tickets.find((t) => t.number === n)!;
+
+  it("closes tickets resolved for longer than the reopen window, and records why", () => {
+    const db = seedDatabase();
+    byNumber(db, 1003).resolvedAt = daysAgo(8); // resolved, Maria's
+    expect(closeStaleResolved(db, NOW)).toBe(1);
+    expect(byNumber(db, 1003).status).toBe("closed");
+    expect(db.comments.some((c) => c.ticketId === "t3" && c.kind === "system" && c.body.includes("Flow closed this ticket"))).toBe(true);
+  });
+
+  it("leaves a ticket that is exactly at the limit, which can still be reopened", () => {
+    const db = seedDatabase();
+    byNumber(db, 1003).resolvedAt = daysAgo(7);
+    expect(closeStaleResolved(db, NOW)).toBe(0);
+    expect(byNumber(db, 1003).status).toBe("resolved");
+    expect(canReopen(byNumber(db, 1003), "u1", NOW)).toBe(true);
+  });
+
+  it("closes exactly the tickets that can no longer be reopened, so the two rules agree", () => {
+    for (const age of [6, 7, 7.01, 8, 30]) {
+      const db = seedDatabase();
+      const t = byNumber(db, 1003);
+      t.resolvedAt = daysAgo(age);
+      const reopenable = canReopen(t, "u1", NOW);
+      closeStaleResolved(db, NOW);
+      expect(t.status === "resolved").toBe(reopenable);
+    }
+  });
+
+  it("never touches open, closed or already-closed tickets", () => {
+    const db = seedDatabase();
+    for (const t of db.tickets) t.resolvedAt = daysAgo(30); // old, but only resolved ones count
+    const before = db.tickets.map((t) => [t.number, t.status]);
+    closeStaleResolved(db, NOW);
+    for (const t of db.tickets) {
+      const was = before.find(([n]) => n === t.number)![1];
+      expect(t.status).toBe(was === "resolved" ? "closed" : was);
+    }
+  });
+
+  it("logs the run with who started it, and tells the requester", () => {
+    const db = seedDatabase();
+    byNumber(db, 1003).resolvedAt = daysAgo(9);
+    closeStaleResolved(db, NOW, "scheduled");
+    expect(db.flowRuns[0]).toMatchObject({ flow: "Close resolved tickets", trigger: "Scheduled run (daily)" });
+    expect(db.flowRuns[0].actions.join(" ")).toContain("Sent email to maria@contoso.test: ticket #1003 was closed");
+  });
+
+  it("logs a run even when nothing is old enough", () => {
+    const db = seedDatabase();
+    expect(closeStaleResolved(db)).toBe(0); // the seed resolved ticket is only hours old, as of the real now
+    expect(db.flowRuns[0].actions).toEqual(["No resolved tickets are older than 7 days"]);
+    expect(db.flowRuns[0].trigger).toContain("Manual run");
+  });
+});
+
+describe("runMaintenance", () => {
+  it("runs escalation and closing, reports both counts, and labels both runs as scheduled", () => {
+    const db = seedDatabase();
+    const farFuture = Date.now() + 30 * 86_400_000;
+    const result = runMaintenance(db, farFuture);
+    expect(result.closed).toBe(1); // seeded ticket 1003 has been resolved for far longer than a week
+    expect(result.escalated).toBeGreaterThan(0);
+    expect(db.flowRuns.slice(0, 2).map((r) => r.trigger)).toEqual(["Scheduled run (daily)", "Scheduled run (hourly)"]);
   });
 });
