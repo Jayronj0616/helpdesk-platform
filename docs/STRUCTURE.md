@@ -29,6 +29,7 @@ src/
     tickets/
       page.tsx            Ticket list with search, filters, sorting, pagination
       new/page.tsx        Submit ticket form (canvas app analog)
+      export/route.ts     CSV export of the filtered list (staff only)
       [id]/page.tsx       Ticket detail, status/assignee/asset edit, comment thread
     assets/page.tsx       Asset register; staff can add assets and change status and holder
     requests/page.tsx     Asset request approval workflow
@@ -48,7 +49,7 @@ src/
       migrations.ts       Numbered schema migrations for existing databases (version kept in meta)
       store.ts            readDb, mutate (write transaction, diff write-back), resetDb, newId, first-run seed
       seed.ts             Demo data
-      queries.ts          Pure helpers over rows (isOpen, isOverdue, filterTickets, paginate, ticketsPerDay)
+      queries.ts          Pure helpers over rows (isOpen, isOverdue, filterTickets, parseTicketFilters, paginate, ticketsPerDay)
       admin.ts            Pure rules: changeUserRole, setUserActive, updateProfile, createAsset, updateAsset, requestTypes, add/rename/deleteCategory
       comments.ts         addComment, addSystemEntry (audit trail), visibleComments (hides internal notes)
     auth/
@@ -58,6 +59,7 @@ src/
       reset.ts            createResetToken, isResetTokenValid, consumeResetToken (single use, hashed, expiring)
       rate-limit.ts       Database-backed sliding-window limiter (hashed keys) for login, register, password change
     flows/index.ts        Automation flows (Power Automate analog). Each logs a FlowRun.
+    csv.ts                csvCell, toCsv (quoting plus spreadsheet formula neutralising)
     mail.ts               sendMail (Resend provider, dev outbox, or off), mailMode, appUrl, passwordResetAvailable
     session.ts            currentUser, requireUser, startSession/endSession (cookie), role checks
     config.ts             DEMO_MODE, DEMO_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD (from env)

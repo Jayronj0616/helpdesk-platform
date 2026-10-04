@@ -18,6 +18,8 @@ Most logic is pure functions over a `Database`, so those tests build a fresh `se
 | File | Covers |
 |---|---|
 | `tests/queries.test.ts` | `isOverdue`, `filterTickets` (every filter, search, sorting, no input mutation), `paginate`, `ticketsPerDay` |
+| `tests/csv.test.ts` | `csvCell` and `toCsv` (quoting, formula neutralising for every trigger character, no change mid-text, BOM and CRLF) and `parseTicketFilters` (valid values, invalid and repeated ignored, `hasFilters`) |
+| `tests/export-route.test.ts` | The export route against a real database with the session stubbed: 401, 403, staff download headers, same filters as the list, names and dates not ids, formulas neutralised |
 | `tests/comments.test.ts` | `visibleComments` (internal notes hidden from employees, ordering), `addComment`, `addSystemEntry` |
 | `tests/flows.test.ts` | `onTicketCreated`, `escalateOverdue`, `onAssetRequestDecided` |
 | `tests/password.test.ts` | scrypt hash and verify (random salt, tamper and malformed rejection) |
@@ -45,6 +47,7 @@ Playwright drives the **already installed Chrome** (no browser download; `E2E_BR
 | `03-staff-and-manager` | Agent: all tickets, internal notes (hidden from the requester), audit entries, add asset (uppercased tag, duplicate rejected, status edit), cannot approve. Manager: approve assigns an asset, escalation, reject |
 | `04-admin` | Create an agent who can sign in, demote (unassigns tickets), deactivate and reactivate, session ended immediately on deactivation, password reset signs the user out, own role locked |
 | `04-categories` | Managers only (404 otherwise), add, duplicate refused, the ticket form follows, rename, delete, a category with tickets cannot be deleted |
+| `04-export` | An employee cannot export (403, no button), signed-out is 401, staff get a filtered CSV, a formula title is neutralised, and the button downloads a real file |
 | `05-accessibility` | axe (WCAG 2 A and AA) on public, employee, staff and manager pages with no serious or critical violations, plus a keyboard-only sign-in |
 | `05-password-reset` | Forgot-password link, identical answer for real and unknown emails (only the real one is emailed), the whole reset through the dev outbox, other sessions signed out, link single-use, made-up link |
 | `05-account` | Edit own name and department (email and role not editable, nav shows the new name), change own password (current one required, old one dies, other devices signed out) |

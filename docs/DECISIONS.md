@@ -65,5 +65,8 @@ It runs the same checks a real request needs (connect, migrate, seed) and return
 ## 21. Screenshots are generated, not hand-made
 `npm run screenshots` rebuilds them from a fresh demo through the real UI, so they cannot drift from the app and anyone can refresh them.
 
-## 22. Small commits
+## 22. CSV export neutralises formulas
+A ticket title is typed by any employee and opened in Excel by staff, so `=HYPERLINK(...)` or `=cmd|...` would run on their machine. Every cell that starts with `=`, `+`, `-`, `@`, tab or CR gets a leading apostrophe (the standard mitigation). The export reuses the list's filter parser, so the file always matches what is on screen, and it is checked on the server (staff only), not just hidden in the UI.
+
+## 23. Small commits
 The owner wants one logical change per commit (it also reads well in history and helps their GitHub contribution graph).
