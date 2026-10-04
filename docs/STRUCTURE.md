@@ -37,7 +37,8 @@ src/
     dataverse/
       types.ts            Table types, SLA_HOURS, PRIORITIES. Source of truth for the data model.
       schema.ts           SQL table specs (columns, constraints, load order), auth table DDL
-      db.ts               libSQL client singleton + migrations (CREATE TABLE IF NOT EXISTS)
+      db.ts               libSQL client singleton; creates tables and runs migrations on connect
+      migrations.ts       Numbered schema migrations for existing databases (version kept in meta)
       store.ts            readDb, mutate (write transaction, diff write-back), resetDb, newId, first-run seed
       seed.ts             Demo data
       queries.ts          Pure helpers over rows (isOpen, isOverdue, filterTickets, paginate, ticketsPerDay)
@@ -47,12 +48,15 @@ src/
       password.ts         scrypt hash and verify
       credentials.ts      authenticate, createAccount (any role, admin only), registerUser (employee), setPassword, changeOwnPassword
       sessions.ts         createSession, getSessionUser, destroySession, destroyUserSessions (hashed tokens in SQL)
-      rate-limit.ts       In-memory sliding-window limiter for login and register
+      rate-limit.ts       Database-backed sliding-window limiter (hashed keys) for login, register, password change
     flows/index.ts        Automation flows (Power Automate analog). Each logs a FlowRun.
     session.ts            currentUser, requireUser, startSession/endSession (cookie), role checks
     config.ts             DEMO_MODE, DEMO_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD (from env)
     form-state.ts         FormState type for useActionState actions
-tests/                    Vitest: queries, comments, flows, admin rules (pure); password, db, accounts, production seed (real SQLite files)
+e2e/                      Playwright end-to-end tests (real Chrome, real dev server, throwaway database)
+.github/workflows/ci.yml  CI: lint, types, unit tests, build; and the e2e tests on a runner with Chrome
+playwright.config.ts      Playwright config: port 3210, temp SQLite file, one worker
+tests/                    Vitest: queries, comments, flows, admin rules (pure); password, db, accounts, production seed (real SQLite files: password, db, accounts, rate-limit, migrations, production seed)
 vitest.config.mts         Test config (resolves the @ alias)
 .env.example              DATABASE_URL, DATABASE_AUTH_TOKEN, DEMO_MODE, DEMO_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD
 docs/
@@ -83,11 +87,14 @@ data/helpdesk.db          Local SQLite database, gitignored, created and seeded 
 - **Role checks**: `canWorkTickets` (agent or manager) and `canApprove` (manager) in `session.ts`. Employees can only see their own tickets, enforced in list pages and in `tickets/[id]` (404).
 - **Pure logic** (filtering, overdue checks) lives in `lib/dataverse/queries.ts`. The `react-hooks/purity` lint rule forbids `Date.now()` in components, so anything time-dependent goes there.
 - **Automations** go in `lib/flows/index.ts`, take the `db` object, and call `logRun`.
-- **Adding a table or column**: update `types.ts` and `schema.ts` together (every field of a row type needs a column), seed it in `seed.ts`, set an `orderBy` that matches how code expects the array ordered, add tests, and update `DATA-MODEL.md` and the blueprint. `CREATE TABLE IF NOT EXISTS` does not alter existing tables, so a changed column on an existing database needs a real migration.
+- **Adding a table**: update `types.ts` and `schema.ts` together (every field of a row type needs a column), seed it in `seed.ts`, set an `orderBy` that matches how code expects the array ordered, add tests, and update `DATA-MODEL.md` and the blueprint. New tables are created automatically on connect.
+- **Adding or changing a column on an existing table**: `CREATE TABLE IF NOT EXISTS` never alters a table, so add a numbered migration to `migrations.ts` (never edit a released one) **and** the column to `schema.ts`, so new databases are created with it. Add a test in `tests/migrations.test.ts`.
+- **Async calls must be awaited**: `readDb`, `mutate`, the limiter and the auth functions return Promises, and the type-aware lint rules fail the build if one is forgotten.
 - **UI**: reuse `ui.tsx` primitives. Every form control needs a label or `aria-label`.
 - **Commits**: small, one logical change each, with a clear message.
 
 ## Verify before committing
 ```bash
 npx eslint . && npx tsc --noEmit && npm test && npm run build
+npm run test:e2e   # when pages, actions or auth changed
 ```

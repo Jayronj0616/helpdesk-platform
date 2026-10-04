@@ -25,10 +25,11 @@ IT helpdesk and asset tracker in Next.js 16 + TypeScript + Tailwind, structured 
 - Always render comments through `visibleComments()` so internal notes never reach employees.
 - No `Date.now()` in components; use `src/lib/dataverse/queries.ts`.
 - Every form control needs a label or `aria-label`.
+- Changing a column on an existing table needs a numbered migration in `lib/dataverse/migrations.ts` (and the column in `schema.ts`). Users are deactivated, never deleted.
 - Tables added to the data model need a default in `readDb()`, a seed entry, and an update to `docs/DATA-MODEL.md` and the blueprint.
 
 ## Definition of done
-1. `npx eslint . && npx tsc --noEmit && npm test && npm run build` all pass.
+1. `npx eslint . && npx tsc --noEmit && npm test && npm run build` all pass, plus `npm run test:e2e` when pages, actions or auth changed.
 2. The change is verified (see `docs/TESTING.md`).
 3. Docs updated: tick `docs/PROGRESS.md`; update `STRUCTURE.md`, `DATA-MODEL.md`, `FEATURES.md` or `FLOWS.md` if what they describe changed; rewrite `docs/HANDOFF.md`.
 4. Committed in small, single-purpose commits.
