@@ -38,5 +38,20 @@ A public demo wants sample data and published logins. A real deployment must not
 ## 12. Managers cannot change their own role
 This is the cheapest way to guarantee the last manager cannot demote themselves and leave nobody able to administer the system.
 
-## 13. Small commits
+## 13. Numbered migrations instead of an ORM or auto-sync
+`CREATE TABLE IF NOT EXISTS` cannot change an existing table, and a deployed database holds real data. A small `migrations.ts` (numbered, each applied in one batch with its version bump) covers it without a dependency. Schema changes go in both `migrations.ts` and `schema.ts`, and a missing users table marks a fresh database so it is not migrated.
+
+## 14. Deactivate, never delete, users
+Tickets, comments and audit entries refer to people by id, and deleting someone would either break those references or erase history. Deactivation keeps the record, blocks sign-in and assignment, and is reversible.
+
+## 15. Rate limiting in the database
+An in-memory counter resets on every serverless cold start, so on Vercel it would barely limit anything. Storing attempts in the same database (keys hashed) works across instances with no new service. It costs one extra write per attempt, which is fine for sign-in traffic. Swap in Redis only if that ever matters.
+
+## 16. Type-aware lint for forgotten awaits
+Making the limiter async turned `if (!limiter.attempt(key))` into a silent no-op that TypeScript accepts. The `no-misused-promises` and `no-floating-promises` rules now fail lint on it, and a probe file with the bug confirmed they fire.
+
+## 17. Reset restores demo credentials
+On a public demo anyone can change a demo account's password. Reset therefore re-sets the demo passwords and reactivates demo accounts, otherwise one visitor could lock everyone else out of the demo until someone fixed it by hand. This was found by the end-to-end tests.
+
+## 18. Small commits
 The owner wants one logical change per commit (it also reads well in history and helps their GitHub contribution graph).
