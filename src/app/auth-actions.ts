@@ -1,10 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
-import { authenticate, normalizeEmail, registerUser } from "@/lib/auth/credentials";
+import { cookies, headers } from "next/headers";
+import { authenticate, changeOwnPassword, normalizeEmail, registerUser } from "@/lib/auth/credentials";
 import { loginLimiter } from "@/lib/auth/rate-limit";
-import { endSession, startSession } from "@/lib/session";
+import type { FormState } from "@/lib/form-state";
+import { SESSION_COOKIE, endSession, requireUser, startSession } from "@/lib/session";
 
 export interface AuthState {
   error?: string;
@@ -55,4 +56,22 @@ export async function register(_prev: AuthState, formData: FormData): Promise<Au
 export async function logout() {
   await endSession();
   redirect("/login");
+}
+
+export async function changePassword(_prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  // Same limiter as sign-in: this endpoint also tells an attacker whether a guess of the current password was right.
+  if (!loginLimiter.attempt(`password|${user.id}`)) return { error: "Too many attempts. Try again in 15 minutes." };
+
+  const result = await changeOwnPassword(
+    user.id,
+    String(formData.get("current") ?? ""),
+    String(formData.get("next") ?? ""),
+    token,
+  );
+  if (!result.ok) return { error: result.error };
+
+  loginLimiter.reset(`password|${user.id}`);
+  return { message: "Password changed. Your other devices were signed out." };
 }
