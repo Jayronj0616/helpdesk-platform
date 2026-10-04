@@ -87,6 +87,23 @@ export interface Comment {
   createdAt: string;
 }
 
+// An email the system means to send. Flows add these inside the same database transaction as the change that
+// caused them (a transactional outbox), and a separate step delivers them afterwards.
+export type NotificationStatus = "pending" | "sent" | "failed" | "skipped";
+
+export interface Notification {
+  id: string;
+  toAddress: string;
+  subject: string;
+  body: string;
+  ticketId: string | null;
+  createdAt: string;
+  status: NotificationStatus;
+  attempts: number;
+  sentAt: string | null;
+  lastError: string | null;
+}
+
 export interface Database {
   nextTicketNumber: number;
   comments: Comment[];
@@ -96,6 +113,7 @@ export interface Database {
   assets: Asset[];
   assetRequests: AssetRequest[];
   flowRuns: FlowRun[];
+  notifications: Notification[];
 }
 
 export const SLA_HOURS: Record<Priority, number> = {
