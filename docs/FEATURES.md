@@ -5,12 +5,13 @@ Every route, what it does, and who can do what. Role checks live in `src/app/act
 | Route | What it does | Employee | Agent | Manager |
 |---|---|---|---|---|
 | `/login`, `/register` | Sign in and self-registration (public) | yes | yes | yes |
-| `/` | Dashboard: KPI tiles, bar charts, tickets created per day (7 days). Ticket and request figures are scoped to the user; asset counts are global. | own tickets and requests only | all | all |
+| `/` | Dashboard: KPI tiles, bar charts, tickets created per day (7 days), and average customer satisfaction ("No ratings yet" until one exists). Ticket and request figures are scoped to the user; asset counts are global. | own tickets and requests only | all | all |
 | `/tickets` | List with search (number, title, description, requester), filters (status, priority, category, assignee, overdue) and sort. State is in the URL query: `q`, `status`, `priority`, `category`, `assignee` (user id or `none`), `overdue=1`, `sort` (`newest`/`oldest`/`due`/`priority`). Invalid values are ignored. Paginated 10 per page with `page` (out-of-range pages are clamped; filters are kept in the page links). | own | all | all |
-| `/tickets/export` | CSV download of every ticket matching the list's current filters (not just one page): number, title, description, requester, assignee, category, priority, status, ISO dates, escalated, asset tag. Staff only: 401 signed out, 403 for employees. Cells that start with `=`, `+`, `-`, `@`, tab or CR get a leading apostrophe so a ticket titled `=HYPERLINK(...)` cannot run as a spreadsheet formula. UTF-8 with a byte order mark, CRLF lines. | no | yes | yes |
+| `/tickets/export` | CSV download of every ticket matching the list's current filters (not just one page): number, title, description, requester, assignee, category, priority, status, ISO dates, escalated, asset tag, rating and rating comment. Staff only: 401 signed out, 403 for employees. Cells that start with `=`, `+`, `-`, `@`, tab or CR get a leading apostrophe so a ticket titled `=HYPERLINK(...)` cannot run as a spreadsheet formula. UTF-8 with a byte order mark, CRLF lines. | no | yes | yes |
 | `/tickets/new` | Submit ticket, which runs the "ticket created" flow. Optional related asset: employees can only pick assets assigned to them, staff any non-retired asset (re-checked in `createTicket`). The category is validated against the table. | yes | yes | yes |
-| `/tickets/[id]` | Details, activity thread, comment form | own only (404 otherwise) | all | all |
+| `/tickets/[id]` | Details, customer satisfaction, activity thread, comment form | own only (404 otherwise) | all | all |
 | `/tickets/[id]` status, assignee and related-asset form | `updateTicket`, which writes audit entries for each changed field. Unknown asset ids are ignored, and the assignee must be an agent or manager. | no | yes | yes |
+| Satisfaction rating | The requester rates a resolved or closed ticket 1 to 5 with an optional comment (`rateTicketAction`). Once only, so the average cannot be gamed; only the requester can (a stranger gets the same answer for a missing ticket and someone else's), and staff see the rating but cannot give one. Writes an audit entry. | own resolved or closed tickets | view only | view only |
 | Comment form | `addTicketComment`; max 2000 chars | own tickets, never internal | any ticket, can mark internal | same as agent |
 | `/assets` | Asset register. Staff can add an asset (`createAssetAction`: unique uppercase tag, type spelling reused) and change status and holder (`updateAssetAction`: only `assigned` assets have a holder). | read only | add and edit | add and edit |
 | `/forgot-password`, `/reset-password/[token]` | Password reset by emailed link (see Authentication). 404 when email is not configured in production. | yes | yes | yes |
@@ -23,7 +24,7 @@ Every route, what it does, and who can do what. Role checks live in `src/app/act
 | `/flows` | Flow run history | read | read | read, run escalation, reset demo data (demo mode only) |
 
 ## Server actions (`src/app/actions.ts`)
-`createTicket`, `updateTicket`, `addTicketComment`, `createAssetRequest`, `decideRequest`, `runEscalation`, `resetDemoData`, `createAssetAction`, `updateAssetAction`, `updateProfileAction`. Each re-checks the role itself, never trusting the UI.
+`createTicket`, `updateTicket`, `addTicketComment`, `createAssetRequest`, `decideRequest`, `runEscalation`, `resetDemoData`, `createAssetAction`, `updateAssetAction`, `updateProfileAction`, `rateTicketAction`. Each re-checks the role itself, never trusting the UI.
 
 ## Admin actions (`src/app/admin-actions.ts`, managers only)
 `createUserAction`, `setUserRoleAction`, `setUserActiveAction`, `resetUserPasswordAction`, `addCategoryAction`, `renameCategoryAction`, `deleteCategoryAction`. Rules:

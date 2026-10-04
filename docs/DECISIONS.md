@@ -68,5 +68,8 @@ It runs the same checks a real request needs (connect, migrate, seed) and return
 ## 22. CSV export neutralises formulas
 A ticket title is typed by any employee and opened in Excel by staff, so `=HYPERLINK(...)` or `=cmd|...` would run on their machine. Every cell that starts with `=`, `+`, `-`, `@`, tab or CR gets a leading apostrophe (the standard mitigation). The export reuses the list's filter parser, so the file always matches what is on screen, and it is checked on the server (staff only), not just hidden in the UI.
 
-## 23. Small commits
+## 23. One rating per ticket, by the requester only
+A satisfaction number is only worth showing if it cannot be steered. So only the person who raised the ticket can rate it, only after it is resolved, and only once; staff cannot rate on a customer's behalf or change a rating. The same "Ticket not found" answer for missing and not-yours stops ticket ids being probed. The 1 to 5 range is also a database `CHECK`, so a bug cannot store 9. This was the first change to an existing table, shipped as migration 3, with tests that upgrade real version 1 and 2 shapes.
+
+## 24. Small commits
 The owner wants one logical change per commit (it also reads well in history and helps their GitHub contribution graph).

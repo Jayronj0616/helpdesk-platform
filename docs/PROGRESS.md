@@ -25,7 +25,7 @@ Status key: `[x]` done, `[~]` in progress, `[ ]` to do.
 - [x] **Account page**: change own password (current password required, other devices signed out)
 - [x] **Asset management** for staff: add assets (unique tag, normalised type) and change status and holder
 - [x] Request types no longer depend on the register (defaults plus register types), so a fresh production database works
-- [x] 156 unit tests (flows, queries, comments, admin rules, password hashing, rate limiter, migrations, mail, reset tokens, health, real SQLite database, accounts, production first run)
+- [x] Unit tests (flows, queries, comments, admin and category rules, feedback, csv, export route, password hashing, rate limiter, migrations, mail, reset tokens, health, real SQLite database, accounts, production first run)
 - [x] 45 Playwright end-to-end tests against the installed Chrome (auth and headers, employee, staff, manager, admin, accessibility, password reset, account, reset)
 - [x] **Password reset by email**: hashed single-use expiring tokens, identical response for known and unknown addresses (work runs in `after()`), per-IP and per-address limits, links built from `APP_URL`, Resend over HTTP, dev outbox, turns itself off in production without a provider
 - [x] Security headers (including a partial CSP), `/api/health`, and a production-build check that the reset pages and dev outbox are 404 without a provider
@@ -34,6 +34,7 @@ Status key: `[x]` done, `[~]` in progress, `[ ]` to do.
 - [x] Edit your own profile (name and department) on the Account page
 - [x] Manager-managed ticket categories (`/admin/categories`): add, rename, delete when unused
 - [x] CSV export of the filtered ticket list for staff, with spreadsheet formula protection
+- [x] Customer satisfaction: requesters rate resolved tickets once, shown on the ticket, the dashboard and the CSV export (migration 3)
 - [x] GitHub Actions CI (lint, types, unit tests, build, e2e), passing on Linux
 - [x] **Versioned migrations** (`migrations.ts`, version in `meta`), safe on concurrent startup
 - [x] **Deactivate and reactivate users** (never delete): blocks sign-in, ends sessions, unassigns open tickets, hidden from assignee lists and flows

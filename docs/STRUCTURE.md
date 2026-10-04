@@ -51,6 +51,7 @@ src/
       seed.ts             Demo data
       queries.ts          Pure helpers over rows (isOpen, isOverdue, filterTickets, parseTicketFilters, paginate, ticketsPerDay)
       admin.ts            Pure rules: changeUserRole, setUserActive, updateProfile, createAsset, updateAsset, requestTypes, add/rename/deleteCategory
+      feedback.ts         rateTicket, canRate, averageRating (customer satisfaction rules)
       comments.ts         addComment, addSystemEntry (audit trail), visibleComments (hides internal notes)
     auth/
       password.ts         scrypt hash and verify
