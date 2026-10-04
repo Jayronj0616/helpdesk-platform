@@ -80,6 +80,7 @@ test.describe("agent", () => {
     await expect(page.getByRole("button", { name: "Approve" })).toHaveCount(0);
     await page.goto("/flows");
     await expect(page.getByRole("button", { name: /Escalate overdue/ })).toBeDisabled();
+    await expect(page.getByRole("button", { name: /Close resolved tickets/ })).toBeDisabled();
   });
 });
 
@@ -107,6 +108,14 @@ test.describe("manager", () => {
 
     await page.goto("/tickets/t1");
     await expect(page.getByText("Flow escalated this ticket: priority high to critical (SLA breached)")).toBeVisible();
+  });
+
+  test("the manager can run the close-resolved-tickets flow, which only closes tickets resolved over a week ago", async ({ page }) => {
+    await page.goto("/flows");
+    await page.getByRole("button", { name: /Close resolved tickets/ }).click();
+    await expect(page.getByText("Close resolved tickets", { exact: true })).toBeVisible();
+    await expect(page.getByText("No resolved tickets are older than 7 days")).toBeVisible();
+    await expect(page.getByText("Manual run (scheduled daily in production)")).toBeVisible();
   });
 
   test("a rejected request does not assign anything", async ({ page }) => {
