@@ -29,5 +29,14 @@ Hashes and tokens are in `auth_*` tables that `readDb()` never loads, so a page 
 ## 9. Self-registration creates employees only
 Roles decide who can approve requests and see all tickets, so they are never self-service. Agents and managers come from the seed (or a database insert by an administrator).
 
-## 10. Small commits
+## 10. First-run seed depends on DEMO_MODE
+A public demo wants sample data and published logins. A real deployment must not ship known demo accounts, but it also must not start with nobody able to administer it. So `DEMO_MODE=0` creates only categories and one manager from `ADMIN_EMAIL` and `ADMIN_PASSWORD`, and refuses to start without them. The seed runs once (a `seeded` flag) and every statement is idempotent, so two server instances starting together are safe.
+
+## 11. Admin rules are pure functions
+`changeUserRole`, `createAsset` and `updateAsset` take a `Database` and return a result, like the flows do. The server actions only check the caller and call them inside `mutate`, so the rules are unit tested without a server, and the role check reads the role from the database rather than trusting the session object alone.
+
+## 12. Managers cannot change their own role
+This is the cheapest way to guarantee the last manager cannot demote themselves and leave nobody able to administer the system.
+
+## 13. Small commits
 The owner wants one logical change per commit (it also reads well in history and helps their GitHub contribution graph).
