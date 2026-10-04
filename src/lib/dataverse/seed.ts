@@ -45,32 +45,32 @@ export function seedDatabase(): Database {
       {
         id: "t1", number: 1001, title: "Laptop will not boot", description: "Black screen after the Windows update.",
         requesterId: "u1", assigneeId: "u3", categoryId: "c1", priority: "high", status: "in_progress", assetId: "a1",
-        createdAt: hoursAgo(30), updatedAt: hoursAgo(2), dueAt: hoursAgo(22), resolvedAt: null, escalated: false, rating: null, ratingComment: null, ratedAt: null,
+        createdAt: hoursAgo(30), updatedAt: hoursAgo(2), dueAt: hoursAgo(22), resolvedAt: null, escalated: false, rating: null, ratingComment: null, ratedAt: null, waitingSince: null,
       },
       {
         id: "t2", number: 1002, title: "Cannot connect to VPN", description: "Error 809 when connecting from home.",
         requesterId: "u2", assigneeId: "u4", categoryId: "c3", priority: "medium", status: "waiting", assetId: null,
-        createdAt: hoursAgo(20), updatedAt: hoursAgo(5), dueAt: hoursFrom(4), resolvedAt: null, escalated: false, rating: null, ratingComment: null, ratedAt: null,
+        createdAt: hoursAgo(20), updatedAt: hoursAgo(5), dueAt: hoursFrom(4), resolvedAt: null, escalated: false, rating: null, ratingComment: null, ratedAt: null, waitingSince: hoursAgo(5),
       },
       {
         id: "t3", number: 1003, title: "Need Adobe Acrobat license", description: "Required for signing vendor contracts.",
         requesterId: "u1", assigneeId: "u3", categoryId: "c2", priority: "low", status: "resolved", assetId: null,
-        createdAt: hoursAgo(60), updatedAt: hoursAgo(40), dueAt: hoursFrom(12), resolvedAt: hoursAgo(40), escalated: false, rating: null, ratingComment: null, ratedAt: null,
+        createdAt: hoursAgo(60), updatedAt: hoursAgo(40), dueAt: hoursFrom(12), resolvedAt: hoursAgo(40), escalated: false, rating: null, ratingComment: null, ratedAt: null, waitingSince: null,
       },
       {
         id: "t4", number: 1004, title: "Password reset for shared mailbox", description: "Sales shared mailbox is locked out.",
         requesterId: "u2", assigneeId: "u4", categoryId: "c4", priority: "medium", status: "closed", assetId: null,
-        createdAt: hoursAgo(90), updatedAt: hoursAgo(80), dueAt: hoursAgo(66), resolvedAt: hoursAgo(80), escalated: false, rating: 5, ratingComment: "Fast fix, thank you.", ratedAt: hoursAgo(78),
+        createdAt: hoursAgo(90), updatedAt: hoursAgo(80), dueAt: hoursAgo(66), resolvedAt: hoursAgo(80), escalated: false, rating: 5, ratingComment: "Fast fix, thank you.", ratedAt: hoursAgo(78), waitingSince: null,
       },
       {
         id: "t5", number: 1005, title: "Printer on 3rd floor offline", description: "Nobody can print since morning.",
         requesterId: "u1", assigneeId: null, categoryId: "c3", priority: "high", status: "new", assetId: null,
-        createdAt: hoursAgo(3), updatedAt: hoursAgo(3), dueAt: hoursFrom(5), resolvedAt: null, escalated: false, rating: null, ratingComment: null, ratedAt: null,
+        createdAt: hoursAgo(3), updatedAt: hoursAgo(3), dueAt: hoursFrom(5), resolvedAt: null, escalated: false, rating: null, ratingComment: null, ratedAt: null, waitingSince: null,
       },
       {
         id: "t6", number: 1006, title: "Excel crashes on large workbook", description: "Crashes when opening the Q3 forecast file.",
         requesterId: "u2", assigneeId: "u3", categoryId: "c2", priority: "low", status: "in_progress", assetId: "a3",
-        createdAt: hoursAgo(10), updatedAt: hoursAgo(6), dueAt: hoursFrom(62), resolvedAt: null, escalated: false, rating: null, ratingComment: null, ratedAt: null,
+        createdAt: hoursAgo(10), updatedAt: hoursAgo(6), dueAt: hoursFrom(62), resolvedAt: null, escalated: false, rating: null, ratingComment: null, ratedAt: null, waitingSince: null,
       },
     ],
     assets: [
