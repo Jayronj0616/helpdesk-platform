@@ -11,7 +11,7 @@ const LINKS = [
 ];
 
 export function Nav({ user }: { user: User | null }) {
-  const links = user?.role === "manager" ? [...LINKS, { href: "/admin/users", label: "Users" }] : LINKS;
+  const links = user?.role === "manager" ? [...LINKS, { href: "/admin/users", label: "Users" }, { href: "/admin/categories", label: "Categories" }] : LINKS;
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
