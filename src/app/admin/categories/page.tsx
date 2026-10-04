@@ -9,7 +9,7 @@ import { canApprove, requireUser } from "@/lib/session";
 export default async function AdminCategories() {
   const me = await requireUser();
   if (!canApprove(me)) notFound();
-  const db = await readDb();
+  const db = await readDb(["categories", "tickets"]);
   const used = (id: string) => db.tickets.filter((t) => t.categoryId === id).length;
 
   return (

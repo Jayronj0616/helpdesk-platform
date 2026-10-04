@@ -9,7 +9,7 @@ import { canWorkTickets, requireUser } from "@/lib/session";
 // Asset register: a Dataverse table view. IT staff can add assets and change status and holder.
 export default async function Assets() {
   const user = await requireUser();
-  const db = await readDb();
+  const db = await readDb(["users", "assets"]);
   const staff = canWorkTickets(user);
   const name = (id: string | null) => db.users.find((u) => u.id === id)?.name ?? "-";
   const headers = ["Tag", "Name", "Type", "Status", "Assigned to", "Purchased", ...(staff ? ["Manage"] : [])];

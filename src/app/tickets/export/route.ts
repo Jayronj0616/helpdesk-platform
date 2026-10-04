@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   if (!user) return new Response("Sign in first.", { status: 401, headers: { "Cache-Control": "no-store" } });
   if (!canWorkTickets(user)) return new Response("Only IT staff can export tickets.", { status: 403, headers: { "Cache-Control": "no-store" } });
 
-  const db = await readDb();
+  const db = await readDb(["tickets", "users", "categories", "assets"]);
   const params = Object.fromEntries(new URL(request.url).searchParams);
   const tickets = filterTickets(db, db.tickets, parseTicketFilters(params, db));
   const person = (id: string | null) => db.users.find((u) => u.id === id)?.name ?? "";

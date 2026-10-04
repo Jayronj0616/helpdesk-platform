@@ -7,7 +7,7 @@ import { Card, PageTitle, btnCls, btnGhostCls, fmt } from "@/components/ui";
 // Run history: the Power Automate "28-day run history" equivalent.
 export default async function Flows() {
   const user = await requireUser();
-  const db = await readDb();
+  const db = await readDb(["flowRuns"]);
   const manager = canApprove(user);
   return (
     <>

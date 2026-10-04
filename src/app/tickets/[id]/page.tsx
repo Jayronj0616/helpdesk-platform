@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import { addTicketComment, updateTicket } from "@/app/actions";
 import { RatingForm } from "@/components/ActionForms";
 import { canRate } from "@/lib/dataverse/feedback";
-import { readDb } from "@/lib/dataverse/store";
-import { visibleComments } from "@/lib/dataverse/comments";
+import { readComments, readDb } from "@/lib/dataverse/store";
+import { filterVisible } from "@/lib/dataverse/comments";
 import { canWorkTickets, requireUser } from "@/lib/session";
 import { Badge, Card, PageTitle, btnCls, fmt, inputCls, label, priorityTone, statusTone } from "@/components/ui";
 
@@ -11,7 +11,7 @@ import { Badge, Card, PageTitle, btnCls, fmt, inputCls, label, priorityTone, sta
 export default async function TicketDetail({ params }: PageProps<"/tickets/[id]">) {
   const { id } = await params;
   const user = await requireUser();
-  const db = await readDb();
+  const db = await readDb(["users", "categories", "tickets", "assets"]);
   const t = db.tickets.find((x) => x.id === id);
   // Row-level security: employees can only open their own tickets.
   if (!t || (!canWorkTickets(user) && t.requesterId !== user.id)) notFound();
@@ -21,7 +21,7 @@ export default async function TicketDetail({ params }: PageProps<"/tickets/[id]"
   // Active staff, plus the current assignee even if they have since been deactivated, so the form still shows them.
   const agents = db.users.filter((u) => u.role !== "employee" && (u.active || u.id === t.assigneeId));
   const editable = canWorkTickets(user);
-  const thread = visibleComments(db, t.id, editable);
+  const thread = filterVisible(await readComments(t.id), editable);
 
   const rows: [string, React.ReactNode][] = [
     ["Requester", name(t.requesterId)],

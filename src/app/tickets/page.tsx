@@ -12,7 +12,7 @@ export default async function Tickets({ searchParams }: PageProps<"/tickets">) {
   const sp = await searchParams;
   const created = one(sp.created);
   const user = await requireUser();
-  const db = await readDb();
+  const db = await readDb(["users", "categories", "tickets"]);
   const staff = canWorkTickets(user);
 
   const filters = parseTicketFilters(sp, db);

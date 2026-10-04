@@ -7,7 +7,7 @@ import { Card, PageTitle, btnCls, inputCls, label } from "@/components/ui";
 // Employee-facing "submit a ticket" form: the canvas app equivalent.
 export default async function NewTicket() {
   const user = await requireUser();
-  const { categories, assets: allAssets } = await readDb();
+  const { categories, assets: allAssets } = await readDb(["categories", "assets"]);
   // Employees can only link equipment assigned to them; IT staff can link any active asset.
   const assets = canWorkTickets(user)
     ? allAssets.filter((a) => a.status !== "retired")

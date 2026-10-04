@@ -7,7 +7,7 @@ import { Badge, Card, PageTitle, btnCls, btnGhostCls, fmt, inputCls, label, requ
 // Approval workflow: employees request equipment, managers approve or reject.
 export default async function Requests() {
   const user = await requireUser();
-  const db = await readDb();
+  const db = await readDb(["users", "assetRequests", "assets"]);
   const requests = canWorkTickets(user) ? db.assetRequests : db.assetRequests.filter((r) => r.requesterId === user.id);
   const name = (id: string | null) => db.users.find((u) => u.id === id)?.name ?? "-";
   const types = requestTypes(db);

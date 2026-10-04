@@ -8,7 +8,7 @@ import { Card, PageTitle, label } from "@/components/ui";
 // (row-level security); agents and managers see everything.
 export default async function Dashboard() {
   const user = await requireUser();
-  const db = await readDb();
+  const db = await readDb(["tickets", "categories", "assets", "assetRequests"]);
   const tickets = canWorkTickets(user) ? db.tickets : db.tickets.filter((t) => t.requesterId === user.id);
   const requests = canWorkTickets(user) ? db.assetRequests : db.assetRequests.filter((r) => r.requesterId === user.id);
   const open = tickets.filter(isOpen);

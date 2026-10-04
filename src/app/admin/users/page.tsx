@@ -11,7 +11,7 @@ import { canApprove, requireUser } from "@/lib/session";
 export default async function AdminUsers() {
   const me = await requireUser();
   if (!canApprove(me)) notFound();
-  const db = await readDb();
+  const db = await readDb(["users", "tickets"]);
   const openFor = (id: string) => db.tickets.filter((t) => t.assigneeId === id && isOpen(t)).length;
   const openText = (id: string) => `${openFor(id)} open ticket${openFor(id) === 1 ? "" : "s"} assigned`;
 
