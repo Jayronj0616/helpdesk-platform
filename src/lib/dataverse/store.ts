@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import type { InStatement, ResultSet, Row } from "@libsql/client";
-import type { Database } from "./types";
+import type { Comment, Database } from "./types";
 import { seedDatabase, seedProduction } from "./seed";
 import { ADMIN_EMAIL, ADMIN_PASSWORD, DEMO_MODE, DEMO_PASSWORD } from "../config";
 import { getDb } from "./db";
@@ -38,21 +38,27 @@ function toArgs(spec: TableSpec, obj: Record<string, unknown>) {
   });
 }
 
-// One round trip: every table plus the ticket counter in a single batch.
-const LOAD_STATEMENTS: InStatement[] = [
-  ...TABLES.map((spec) => ({ sql: `SELECT * FROM ${spec.sql} ORDER BY ${spec.orderBy}`, args: [] })),
-  { sql: "SELECT value FROM meta WHERE key = 'nextTicketNumber'", args: [] },
-];
+// One round trip: the tables asked for plus the ticket counter, in a single batch.
+type TableKey = Exclude<keyof Database, "nextTicketNumber">;
 
-function fromResults(results: ResultSet[]): Database {
-  const db = { nextTicketNumber: 1, comments: [], users: [], categories: [], tickets: [], assets: [], assetRequests: [], flowRuns: [] } as Database;
-  TABLES.forEach((spec, i) => {
-    (db[spec.key] as unknown[]) = results[i].rows.map((r) => fromSql(spec, r));
-  });
-  const meta = results[TABLES.length].rows[0];
-  if (meta) db.nextTicketNumber = Number(meta.value);
-  return db;
+function loadStatements(specs: TableSpec[]): InStatement[] {
+  return [
+    ...specs.map((spec) => ({ sql: `SELECT * FROM ${spec.sql} ORDER BY ${spec.orderBy}`, args: [] })),
+    { sql: "SELECT value FROM meta WHERE key = 'nextTicketNumber'", args: [] },
+  ];
 }
+
+function fromResults(results: ResultSet[], specs: TableSpec[] = TABLES): Database {
+  const db: Record<string, unknown> = { nextTicketNumber: 1 };
+  specs.forEach((spec, i) => {
+    db[spec.key] = results[i].rows.map((r) => fromSql(spec, r));
+  });
+  const meta = results[specs.length].rows[0];
+  if (meta) db.nextTicketNumber = Number(meta.value);
+  return db as unknown as Database;
+}
+
+const ALL_LOAD = loadStatements(TABLES);
 
 function snapshot(db: Database): Record<string, Snapshot> {
   const out: Record<string, Snapshot> = {};
@@ -136,9 +142,29 @@ export function ensureSeeded(): Promise<void> {
   return seeded;
 }
 
-export async function readDb(): Promise<Database> {
+/**
+ * Loads the whole database, or only the tables a page needs. Prefer the list form on pages: a request
+ * should not read every comment and every flow run to draw a dashboard. The result type contains only
+ * the tables you named, so using one you did not ask for is a compile error, not an empty list at runtime.
+ */
+export async function readDb(): Promise<Database>;
+export async function readDb<K extends TableKey>(only: readonly K[]): Promise<Pick<Database, K>>;
+export async function readDb(only?: readonly TableKey[]): Promise<unknown> {
   await ensureSeeded();
-  return fromResults(await (await getDb()).batch(LOAD_STATEMENTS, "read"));
+  const client = await getDb();
+  if (!only) return fromResults(await client.batch(ALL_LOAD, "read"));
+  const specs = TABLES.filter((t) => only.includes(t.key));
+  const db = fromResults(await client.batch(loadStatements(specs), "read"), specs) as unknown as Record<string, unknown>;
+  delete db.nextTicketNumber; // not asked for, and not in the Pick type
+  return db;
+}
+
+/** One ticket's comments, oldest first. A single indexed query instead of loading every comment. */
+export async function readComments(ticketId: string): Promise<Comment[]> {
+  await ensureSeeded();
+  const spec = TABLES.find((t) => t.key === "comments")!;
+  const res = await (await getDb()).execute({ sql: `SELECT * FROM comments WHERE ticket_id = ? ORDER BY ${spec.orderBy}`, args: [ticketId] });
+  return res.rows.map((r) => fromSql(spec, r)) as unknown as Comment[];
 }
 
 // All writes in this process run one at a time. The write transaction also protects
@@ -151,7 +177,7 @@ export function mutate<T>(fn: (db: Database) => T): Promise<T> {
     const client = await getDb();
     const tx = await client.transaction("write");
     try {
-      const db = fromResults(await tx.batch(LOAD_STATEMENTS));
+      const db = fromResults(await tx.batch(ALL_LOAD));
       const before = snapshot(db);
       const nextBefore = db.nextTicketNumber;
       const result = fn(db);
