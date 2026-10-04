@@ -64,3 +64,34 @@ describe("filterVisible", () => {
     expect(visibleComments(db, "t1", false)).toEqual(filterVisible(thread, false));
   });
 });
+
+describe("entry timestamps", () => {
+  it("entries added back to back stay in the order they were made, even within one millisecond", () => {
+    const db = seedDatabase();
+    db.comments = [];
+    addSystemEntry(db, "t5", "first");
+    addSystemEntry(db, "t5", "second");
+    addComment(db, { ticketId: "t5", authorId: "u1", body: "third", internal: false });
+    addSystemEntry(db, "t5", "fourth");
+    const times = db.comments.map((c) => c.createdAt);
+    expect(new Set(times).size).toBe(4); // all different
+    expect(filterVisible(db.comments, true).map((c) => c.body)).toEqual(["first", "second", "third", "fourth"]);
+  });
+
+  it("a new entry goes after existing ones even if their timestamps are in the future", () => {
+    const db = seedDatabase();
+    const future = new Date(Date.now() + 60_000).toISOString();
+    db.comments.push({ id: "mx", ticketId: "t5", authorId: null, body: "future", kind: "system", internal: false, createdAt: future });
+    addSystemEntry(db, "t5", "after");
+    const after = db.comments.at(-1)!;
+    expect(new Date(after.createdAt).getTime()).toBeGreaterThan(new Date(future).getTime());
+  });
+
+  it("does not interfere with other tickets' timestamps", () => {
+    const db = seedDatabase();
+    const future = new Date(Date.now() + 3_600_000).toISOString();
+    db.comments.push({ id: "my", ticketId: "t1", authorId: null, body: "far future", kind: "system", internal: false, createdAt: future });
+    addSystemEntry(db, "t5", "unrelated");
+    expect(new Date(db.comments.at(-1)!.createdAt).getTime()).toBeLessThan(new Date(future).getTime());
+  });
+});
