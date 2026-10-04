@@ -6,6 +6,7 @@ import { addSystemEntry } from "../dataverse/comments";
 import type { Database, Ticket, AssetRequest } from "../dataverse/types";
 import { REOPEN_WINDOW_DAYS, SLA_HOURS } from "../dataverse/types";
 import { isOverdue } from "../dataverse/queries";
+import { queueMail } from "../notifications/queue";
 
 function logRun(db: Database, flow: string, trigger: string, actions: string[]) {
   db.flowRuns.unshift({ id: newId("run"), flow, trigger, actions, at: new Date().toISOString() });
@@ -39,14 +40,21 @@ export function onTicketCreated(db: Database, ticket: Ticket) {
     ticket.status = "in_progress";
     const others = load(pick.id) - 1;
     actions.push(`Assigned to ${pick.name} (${others} other open ticket${others === 1 ? "" : "s"})`);
-    actions.push(`Sent email to ${pick.email}: new ticket #${ticket.number}`);
+    actions.push(
+      queueMail(db, {
+        to: pick.email,
+        subject: `Ticket #${ticket.number} assigned to you: ${ticket.title}`,
+        body: `Hi ${pick.name},\n\nA new ${ticket.priority} priority ticket was assigned to you: ${ticket.title}.\nIt is due ${ticket.dueAt}.`,
+        ticketId: ticket.id,
+      }),
+    );
     addSystemEntry(db, ticket.id, `Flow auto-assigned this ticket to ${pick.name}`);
   }
   addSystemEntry(db, ticket.id, `Ticket created. SLA due in ${SLA_HOURS[ticket.priority]}h`);
 
   if (ticket.priority === "critical") {
     const manager = db.users.find((u) => u.role === "manager" && u.active);
-    if (manager) actions.push(`Sent Teams alert to ${manager.name}: critical ticket #${ticket.number}`);
+    if (manager) actions.push(`Teams alert to ${manager.name} (simulated, Teams is not connected): critical ticket #${ticket.number}`);
   }
 
   logRun(db, "When a ticket is created", `Ticket #${ticket.number}`, actions);
@@ -71,7 +79,16 @@ export function escalateOverdue(db: Database, now = Date.now(), source: RunSourc
     t.priority = next;
     t.escalated = true;
     t.updatedAt = new Date().toISOString();
-    if (manager) actions.push(`Sent email to ${manager.email}: ticket #${t.number} breached SLA`);
+    if (manager) {
+      actions.push(
+        queueMail(db, {
+          to: manager.email,
+          subject: `Ticket #${t.number} breached its SLA`,
+          body: `Hi ${manager.name},\n\nTicket #${t.number} (${t.title}) missed its SLA and was escalated to ${next} priority.`,
+          ticketId: t.id,
+        }),
+      );
+    }
   }
   if (!overdue.length) actions.push("No overdue tickets found");
 
@@ -94,13 +111,13 @@ export function onAssetRequestDecided(db: Database, req: AssetRequest) {
       asset.status = "assigned";
       asset.assignedToId = req.requesterId;
       actions.push(`Assigned ${asset.tag} (${asset.name}) to ${requester?.name}`);
-      actions.push(`Sent email to ${requester?.email}: your ${req.assetType} request was approved`);
+      if (requester) actions.push(queueMail(db, { to: requester.email, subject: `Your ${req.assetType} request was approved`, body: `Hi ${requester.name},\n\n${asset.name} (${asset.tag}) is now assigned to you.` }));
     } else {
       actions.push(`No available ${req.assetType} in stock; created purchase task for IT`);
-      actions.push(`Sent email to ${requester?.email}: approved, waiting for stock`);
+      if (requester) actions.push(queueMail(db, { to: requester.email, subject: `Your ${req.assetType} request was approved, waiting for stock`, body: `Hi ${requester.name},\n\nYour request was approved. We have none in stock right now and will be in touch when one is ready.` }));
     }
   } else {
-    actions.push(`Sent email to ${requester?.email}: your ${req.assetType} request was rejected`);
+    if (requester) actions.push(queueMail(db, { to: requester.email, subject: `Your ${req.assetType} request was rejected`, body: `Hi ${requester.name},\n\nYour ${req.assetType} request was not approved. Speak to your manager if you would like to know why.` }));
   }
 
   logRun(db, "When an asset request is decided", `Request ${req.id} ${req.status}`, actions);
@@ -116,10 +133,10 @@ export function onTicketReopened(db: Database, ticket: Ticket) {
   const assignee = db.users.find((u) => u.id === ticket.assigneeId && u.active);
   const manager = db.users.find((u) => u.role === "manager" && u.active);
   if (assignee) {
-    actions.push(`Sent email to ${assignee.email}: ticket #${ticket.number} was reopened by the requester`);
+    actions.push(queueMail(db, { to: assignee.email, subject: `Ticket #${ticket.number} was reopened by the requester`, body: `Hi ${assignee.name},\n\nThe requester says "${ticket.title}" is not fixed. The SLA clock has restarted.`, ticketId: ticket.id }));
   } else {
     actions.push(`Ticket #${ticket.number} has no active assignee, so it is back in the new queue`);
-    if (manager) actions.push(`Sent email to ${manager.email}: reopened ticket #${ticket.number} needs an owner`);
+    if (manager) actions.push(queueMail(db, { to: manager.email, subject: `Reopened ticket #${ticket.number} needs an owner`, body: `Hi ${manager.name},\n\n"${ticket.title}" was reopened and nobody active holds it. It is back in the new queue.`, ticketId: ticket.id }));
   }
   logRun(db, "When a ticket is reopened", `Ticket #${ticket.number}`, actions);
 }
@@ -140,7 +157,7 @@ export function closeStaleResolved(db: Database, now = Date.now(), source: RunSo
     t.updatedAt = new Date(now).toISOString();
     addSystemEntry(db, t.id, `Flow closed this ticket: it was resolved more than ${REOPEN_WINDOW_DAYS} days ago with no reply`);
     actions.push(`Closed ticket #${t.number} (resolved ${new Date(t.resolvedAt!).toISOString().slice(0, 10)})`);
-    if (requester) actions.push(`Sent email to ${requester.email}: ticket #${t.number} was closed`);
+    if (requester) actions.push(queueMail(db, { to: requester.email, subject: `Ticket #${t.number} was closed`, body: `Hi ${requester.name},\n\n"${t.title}" was resolved more than ${REOPEN_WINDOW_DAYS} days ago and has now been closed. If you still need help, please raise a new ticket.`, ticketId: t.id }));
   }
   if (!stale.length) actions.push(`No resolved tickets are older than ${REOPEN_WINDOW_DAYS} days`);
 
