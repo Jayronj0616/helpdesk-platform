@@ -17,11 +17,10 @@ test("capture the README screenshots", async ({ page }) => {
   await expect(page.getByText("Demo accounts")).toBeVisible();
   await shot(page, "login", false);
 
-  // Employee: their own, narrower view
+  // Employee: raising a ticket runs the "when a ticket is created" flow, which the flow log shows later.
   await loginAs(page, USERS.maria);
   await page.goto("/tickets/new");
   await shot(page, "new-ticket");
-  // Submitting it runs the "when a ticket is created" flow, which the flow log screenshot shows later.
   await page.getByLabel("Title").fill("Second monitor flickers");
   await page.getByLabel("Description").fill("It flickers every few minutes since the last update.");
   await page.getByLabel("Priority").selectOption("high");
@@ -29,19 +28,7 @@ test("capture the README screenshots", async ({ page }) => {
   await expect(page.getByText("Ticket #1007 created.")).toBeVisible();
   await logout(page);
 
-  // Agent: a ticket with a public comment, an internal note and an audit trail
-  await loginAs(page, USERS.ana);
-  await page.goto("/tickets/t1");
-  await page.getByLabel("Add a comment").fill("Replaced the driver. Please restart and confirm it boots.");
-  await page.getByRole("button", { name: "Add comment" }).click();
-  await expect(page.getByText("Replaced the driver. Please restart and confirm it boots.")).toBeVisible();
-  await page.getByLabel("Status", { exact: true }).selectOption("waiting");
-  await page.getByRole("button", { name: "Save" }).click();
-  await expect(page.getByText("Ana Cruz changed status from In progress to Waiting")).toBeVisible();
-  await shot(page, "ticket-detail");
-  await logout(page);
-
-  // Manager: everything else
+  // Manager: the overview pages first, while the request is still pending
   await loginAs(page, USERS.dina);
   await page.goto("/");
   await shot(page, "dashboard");
@@ -54,7 +41,8 @@ test("capture the README screenshots", async ({ page }) => {
   await page.goto("/admin/users");
   await shot(page, "admin-users");
 
-  // Give the flow log something to show: approve the pending request, then run the escalation flow.
+  // Then give the flow log something to show: approve the request and run the escalation. This has to
+  // happen before the agent below parks ticket 1001 in Waiting, which pauses its SLA clock.
   await page.goto("/requests");
   await page.getByRole("button", { name: "Approve" }).click();
   await expect(page.getByText("Approved", { exact: true })).toBeVisible();
@@ -62,6 +50,19 @@ test("capture the README screenshots", async ({ page }) => {
   await page.getByRole("button", { name: /Escalate overdue/ }).click();
   await expect(page.getByText("breached SLA")).toBeVisible();
   await shot(page, "flows");
+  await logout(page);
+
+  // Agent: a ticket with a public comment, an internal note, the flow's escalation and a status change
+  await loginAs(page, USERS.ana);
+  await page.goto("/tickets/t1");
+  await page.getByLabel("Add a comment").fill("Replaced the driver. Please restart and confirm it boots.");
+  await page.getByRole("button", { name: "Add comment" }).click();
+  await expect(page.getByText("Replaced the driver. Please restart and confirm it boots.")).toBeVisible();
+  await page.getByLabel("Status", { exact: true }).selectOption("waiting");
+  await page.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("SLA clock paused while waiting for the customer", { exact: false }).first()).toBeVisible();
+  await page.reload(); // so the form shows the saved status
+  await shot(page, "ticket-detail");
 
   // A phone-sized view of the ticket list
   await page.setViewportSize({ width: 390, height: 844 });
