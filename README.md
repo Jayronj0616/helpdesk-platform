@@ -1,5 +1,7 @@
 # HelpDesk Platform
 
+[![CI](https://github.com/Jayronj0616/helpdesk-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Jayronj0616/helpdesk-platform/actions/workflows/ci.yml)
+
 An IT helpdesk and asset tracker built with Next.js. It is structured like a Microsoft Power Platform solution, so every piece has a direct equivalent in Dataverse, Power Apps, Power Automate and Power BI.
 
 | Layer | Here | Power Platform |
