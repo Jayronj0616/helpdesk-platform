@@ -48,6 +48,14 @@ describe("onTicketCreated", () => {
     expect(db.comments.filter((c) => c.ticketId === t.id && c.kind === "system").length).toBeGreaterThanOrEqual(2);
   });
 
+  it("never assigns to a deactivated agent", () => {
+    const db = seedDatabase(); // Ben (u4) has the fewest open tickets, but is deactivated
+    db.users.find((u) => u.id === "u4")!.active = false;
+    const t = newTicket(db, "medium");
+    onTicketCreated(db, t);
+    expect(t.assigneeId).toBe("u3");
+  });
+
   it("leaves the ticket unassigned when there are no agents", () => {
     const db = seedDatabase();
     db.users = db.users.filter((u) => u.role !== "agent");

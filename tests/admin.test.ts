@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { seedDatabase } from "@/lib/dataverse/seed";
-import { changeUserRole, createAsset, requestTypes, updateAsset } from "@/lib/dataverse/admin";
+import { changeUserRole, createAsset, requestTypes, setUserActive, updateAsset } from "@/lib/dataverse/admin";
 
 const asset = (over: Partial<Parameters<typeof createAsset>[1]> = {}) => ({ tag: "LT-0042", name: "ThinkPad X1", type: "Laptop", purchasedAt: "2026-01-15", ...over });
 
@@ -44,6 +44,39 @@ describe("changeUserRole", () => {
     const db = seedDatabase();
     expect(changeUserRole(db, "u5", "u3", "agent")).toMatchObject({ ok: true, unassigned: 0 });
     expect(db.tickets.find((t) => t.number === 1001)!.assigneeId).toBe("u3");
+  });
+});
+
+describe("setUserActive", () => {
+  it("deactivates a user and unassigns their open tickets with an audit entry", () => {
+    const db = seedDatabase();
+    expect(setUserActive(db, "u5", "u3", false)).toMatchObject({ ok: true, unassigned: 2 });
+    expect(db.users.find((u) => u.id === "u3")!.active).toBe(false);
+    expect(db.tickets.find((t) => t.number === 1001)!.assigneeId).toBeNull();
+    expect(db.tickets.find((t) => t.number === 1003)!.assigneeId).toBe("u3"); // resolved: history kept
+    expect(db.comments.some((c) => c.ticketId === "t1" && c.body.includes("deactivated"))).toBe(true);
+  });
+
+  it("reactivates without touching tickets", () => {
+    const db = seedDatabase();
+    setUserActive(db, "u5", "u3", false);
+    expect(setUserActive(db, "u5", "u3", true)).toMatchObject({ ok: true, unassigned: 0 });
+    expect(db.users.find((u) => u.id === "u3")!.active).toBe(true);
+  });
+
+  it("refuses to let a manager deactivate themselves", () => {
+    const db = seedDatabase();
+    expect(setUserActive(db, "u5", "u5", false)).toMatchObject({ ok: false });
+    expect(db.users.find((u) => u.id === "u5")!.active).toBe(true);
+  });
+
+  it("refuses non-managers, unknown users, and deactivated managers", () => {
+    const db = seedDatabase();
+    expect(setUserActive(db, "u3", "u1", false)).toMatchObject({ ok: false });
+    expect(setUserActive(db, "u5", "ghost", false)).toMatchObject({ ok: false });
+    db.users.find((u) => u.id === "u5")!.active = false;
+    expect(setUserActive(db, "u5", "u1", false)).toMatchObject({ ok: false });
+    expect(changeUserRole(db, "u5", "u1", "agent")).toMatchObject({ ok: false });
   });
 });
 

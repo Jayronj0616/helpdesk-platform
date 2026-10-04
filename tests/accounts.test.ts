@@ -57,6 +57,30 @@ describe("setPassword (admin reset)", () => {
   });
 });
 
+describe("deactivated accounts", () => {
+  async function deactivate(userId: string) {
+    const { getDb } = await import("@/lib/dataverse/db");
+    await (await getDb()).execute({ sql: "UPDATE users SET active = 0 WHERE id = ?", args: [userId] });
+  }
+
+  it("cannot sign in, with the same answer as a wrong password", async () => {
+    const r = await creds.createAccount(person("gone@example.com"), "agent");
+    if (!r.ok) throw new Error("setup failed");
+    expect(await creds.authenticate("gone@example.com", "initial-pass-1")).not.toBeNull();
+    await deactivate(r.user.id);
+    expect(await creds.authenticate("gone@example.com", "initial-pass-1")).toBeNull();
+  });
+
+  it("loses an existing session immediately", async () => {
+    const r = await creds.createAccount(person("kicked@example.com"), "agent");
+    if (!r.ok) throw new Error("setup failed");
+    const token = await sessions.createSession(r.user.id);
+    expect(await sessions.getSessionUser(token)).not.toBeNull();
+    await deactivate(r.user.id);
+    expect(await sessions.getSessionUser(token)).toBeNull();
+  });
+});
+
 describe("changeOwnPassword", () => {
   async function setup(email: string) {
     const r = await creds.createAccount(person(email), "employee");
