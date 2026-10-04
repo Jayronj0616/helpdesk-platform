@@ -9,6 +9,8 @@ import { canApprove, canWorkTickets, requireUser } from "@/lib/session";
 import { escalateOverdue, onAssetRequestDecided, onTicketCreated } from "@/lib/flows";
 import { addComment, addSystemEntry } from "@/lib/dataverse/comments";
 import { label } from "@/components/ui";
+import { createAsset, requestTypes, updateAsset } from "@/lib/dataverse/admin";
+import type { FormState } from "@/lib/form-state";
 
 const STATUSES: TicketStatus[] = ["new", "in_progress", "waiting", "resolved", "closed"];
 
@@ -106,8 +108,8 @@ export async function createAssetRequest(formData: FormData) {
   if (!assetType || !justification) return;
 
   await mutate((db) => {
-    // Only request types that exist in the register.
-    if (!db.assets.some((a) => a.type === assetType)) return;
+    // Only request types we offer on the form.
+    if (!requestTypes(db).includes(assetType)) return;
     db.assetRequests.unshift({
       id: newId("r"), assetType, justification, requesterId: user.id,
       status: "pending", decidedById: null, decidedAt: null, createdAt: new Date().toISOString(),
@@ -146,5 +148,30 @@ export async function resetDemoData() {
   const user = await requireUser();
   if (!DEMO_MODE || !canApprove(user)) return;
   await resetDb();
+  revalidatePath("/", "layout");
+}
+
+export async function createAssetAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireUser();
+  if (!canWorkTickets(user)) return { error: "Only IT staff can add assets." };
+  const values = {
+    tag: String(formData.get("tag") ?? ""),
+    name: String(formData.get("name") ?? ""),
+    type: String(formData.get("type") ?? ""),
+    purchasedAt: String(formData.get("purchasedAt") ?? ""),
+  };
+
+  const result = await mutate((db) => createAsset(db, values));
+  if (!result.ok) return { error: result.error, values };
+  revalidatePath("/", "layout");
+  return { message: `Added ${result.asset.tag}.` };
+}
+
+export async function updateAssetAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  if (!canWorkTickets(user)) return;
+  await mutate((db) =>
+    updateAsset(db, String(formData.get("id") ?? ""), String(formData.get("status") ?? ""), String(formData.get("assignedToId") ?? "")),
+  );
   revalidatePath("/", "layout");
 }
