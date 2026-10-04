@@ -18,7 +18,9 @@ IT helpdesk and asset tracker in Next.js 16 + TypeScript + Tailwind, structured 
 3. Then only what the task needs: `docs/STRUCTURE.md` (files and conventions), `docs/DATA-MODEL.md`, `docs/FEATURES.md` (routes and permissions), `docs/FLOWS.md`, `docs/TESTING.md`, `docs/DECISIONS.md`. `docs/INDEX.md` lists them all.
 
 ## Hard rules
-- All mutations go in `src/app/actions.ts`, and each action re-checks the role and validates input.
+- All mutations go in `src/app/actions.ts` (auth in `auth-actions.ts`). Each action calls `requireUser()`, re-checks the role, and re-validates every id and length against the database inside `mutate`.
+- Every page calls `requireUser()` first. `readDb()` and `mutate()` are async, so always `await` them.
+- Password hashes and session tokens live in `auth_*` tables only; never add them to the `Database` type or render them.
 - Always render comments through `visibleComments()` so internal notes never reach employees.
 - No `Date.now()` in components; use `src/lib/dataverse/queries.ts`.
 - Every form control needs a label or `aria-label`.
