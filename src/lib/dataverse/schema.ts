@@ -53,9 +53,16 @@ export const TABLES: TableSpec[] = [
     columns: {
       id: "text", number: "int", title: "text", description: "text", requesterId: "text", assigneeId: "text",
       categoryId: "text", priority: "text", status: "text", assetId: "text", createdAt: "text", updatedAt: "text",
-      dueAt: "text", resolvedAt: "text", escalated: "bool",
+      dueAt: "text", resolvedAt: "text", escalated: "bool", rating: "int", ratingComment: "text", ratedAt: "text",
     },
-    constraints: { id: "PRIMARY KEY", number: "NOT NULL UNIQUE", title: "NOT NULL", requesterId: "NOT NULL", categoryId: "NOT NULL" },
+    constraints: {
+      id: "PRIMARY KEY",
+      number: "NOT NULL UNIQUE",
+      title: "NOT NULL",
+      requesterId: "NOT NULL",
+      categoryId: "NOT NULL",
+      rating: "CHECK (rating BETWEEN 1 AND 5)",
+    },
     tableSql: [
       "FOREIGN KEY (requester_id) REFERENCES users(id)",
       "FOREIGN KEY (assignee_id) REFERENCES users(id)",
