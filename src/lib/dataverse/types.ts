@@ -99,6 +99,7 @@ export const SLA_HOURS: Record<Priority, number> = {
   low: 72,
 };
 
+export const TICKET_STATUSES: TicketStatus[] = ["new", "in_progress", "waiting", "resolved", "closed"];
 export const ROLES: Role[] = ["employee", "agent", "manager"];
 export const ASSET_STATUSES: AssetStatus[] = ["available", "assigned", "repair", "retired"];
 

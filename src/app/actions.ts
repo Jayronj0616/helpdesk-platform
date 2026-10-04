@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { mutate, newId, resetDb } from "@/lib/dataverse/store";
-import { PRIORITIES, type Priority, type TicketStatus } from "@/lib/dataverse/types";
+import { PRIORITIES, TICKET_STATUSES, type Priority, type TicketStatus } from "@/lib/dataverse/types";
 import { DEMO_MODE } from "@/lib/config";
 import { canApprove, canWorkTickets, requireUser } from "@/lib/session";
 import { escalateOverdue, onAssetRequestDecided, onTicketCreated } from "@/lib/flows";
@@ -11,8 +11,6 @@ import { addComment, addSystemEntry } from "@/lib/dataverse/comments";
 import { label } from "@/components/ui";
 import { createAsset, requestTypes, updateAsset, updateProfile } from "@/lib/dataverse/admin";
 import type { FormState } from "@/lib/form-state";
-
-const STATUSES: TicketStatus[] = ["new", "in_progress", "waiting", "resolved", "closed"];
 
 export async function createTicket(formData: FormData) {
   const user = await requireUser();
@@ -52,7 +50,7 @@ export async function updateTicket(formData: FormData) {
   const status = String(formData.get("status")) as TicketStatus;
   const assigneeId = String(formData.get("assigneeId") ?? "");
   const assetId = String(formData.get("assetId") ?? "");
-  if (!STATUSES.includes(status)) return;
+  if (!TICKET_STATUSES.includes(status)) return;
 
   await mutate((db) => {
     const t = db.tickets.find((x) => x.id === id);
