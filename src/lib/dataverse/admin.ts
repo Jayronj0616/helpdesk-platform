@@ -1,4 +1,4 @@
-import type { Asset, AssetStatus, Database, Role } from "./types";
+import type { Asset, AssetStatus, Category, Database, Role } from "./types";
 import { ASSET_STATUSES, ROLES } from "./types";
 import { addSystemEntry } from "./comments";
 import { isOpen } from "./queries";
@@ -130,4 +130,51 @@ export function updateProfile(db: Database, userId: string, input: { name: strin
   user.name = name;
   user.department = department;
   return { ok: true, name, department };
+}
+
+// --- Ticket categories (managers only) ---
+
+const isActiveManager = (db: Database, actorId: string) => {
+  const actor = db.users.find((u) => u.id === actorId);
+  return actor?.role === "manager" && actor.active;
+};
+
+function checkCategoryName(db: Database, name: string, exceptId?: string): Result<{ name: string }> {
+  const clean = name.trim().replace(/\s+/g, " ");
+  if (!clean || clean.length > 40) return { ok: false, error: "Enter a category name (up to 40 characters)." };
+  if (db.categories.some((c) => c.id !== exceptId && c.name.toLowerCase() === clean.toLowerCase())) {
+    return { ok: false, error: `There is already a category called ${clean}.` };
+  }
+  return { ok: true, name: clean };
+}
+
+export function addCategory(db: Database, actorId: string, name: string): Result<{ category: Category }> {
+  if (!isActiveManager(db, actorId)) return { ok: false, error: "Only managers can manage categories." };
+  const checked = checkCategoryName(db, name);
+  if (!checked.ok) return checked;
+  const category: Category = { id: newId("c"), name: checked.name };
+  db.categories.push(category);
+  return { ok: true, category };
+}
+
+export function renameCategory(db: Database, actorId: string, categoryId: string, name: string): Result {
+  if (!isActiveManager(db, actorId)) return { ok: false, error: "Only managers can manage categories." };
+  const category = db.categories.find((c) => c.id === categoryId);
+  if (!category) return { ok: false, error: "Category not found." };
+  const checked = checkCategoryName(db, name, categoryId);
+  if (!checked.ok) return checked;
+  category.name = checked.name; // tickets point at the id, so they all show the new name
+  return { ok: true };
+}
+
+/** A category in use keeps its tickets' history, and the ticket form always needs at least one category. */
+export function deleteCategory(db: Database, actorId: string, categoryId: string): Result {
+  if (!isActiveManager(db, actorId)) return { ok: false, error: "Only managers can manage categories." };
+  const index = db.categories.findIndex((c) => c.id === categoryId);
+  if (index < 0) return { ok: false, error: "Category not found." };
+  const used = db.tickets.filter((t) => t.categoryId === categoryId).length;
+  if (used > 0) return { ok: false, error: `${used} ticket${used === 1 ? " uses" : "s use"} this category, so it cannot be deleted. Rename it instead.` };
+  if (db.categories.length <= 1) return { ok: false, error: "Keep at least one category." };
+  db.categories.splice(index, 1);
+  return { ok: true };
 }
