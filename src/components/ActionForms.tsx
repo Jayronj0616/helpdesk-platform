@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { changePassword } from "@/app/auth-actions";
 import { createUserAction, resetUserPasswordAction } from "@/app/admin-actions";
-import { createAssetAction, rateTicketAction, updateProfileAction } from "@/app/actions";
+import { createAssetAction, rateTicketAction, reopenTicketAction, updateProfileAction } from "@/app/actions";
 import { btnCls, btnGhostCls, inputCls, label } from "@/components/ui";
 import { ROLES } from "@/lib/dataverse/types";
 import type { FormState } from "@/lib/form-state";
@@ -91,6 +91,21 @@ export function ProfileForm({ name, department }: { name: string; department: st
       <Field id="pf-name" text="Full name"><input id="pf-name" name="name" required maxLength={80} defaultValue={state.values?.name ?? name} className={inputCls} /></Field>
       <Field id="pf-dept" text="Department"><input id="pf-dept" name="department" maxLength={60} defaultValue={state.values?.department ?? department} className={inputCls} /></Field>
       <button className={btnCls} disabled={pending}>{pending ? "Saving..." : "Save profile"}</button>
+    </form>
+  );
+}
+
+export function ReopenForm({ ticketId }: { ticketId: string }) {
+  const [state, action, pending] = useActionState(reopenTicketAction, initial);
+  return (
+    <form action={action} className="space-y-3">
+      <Notice state={state} />
+      <input type="hidden" name="ticketId" value={ticketId} />
+      <div>
+        <label htmlFor="reopen-reason" className="mb-1 block text-sm font-medium">What is still wrong?</label>
+        <textarea id="reopen-reason" name="reason" required rows={3} maxLength={1000} defaultValue={state.values?.reason} className={inputCls} />
+      </div>
+      <button className={btnGhostCls} disabled={pending}>{pending ? "Reopening..." : "Reopen ticket"}</button>
     </form>
   );
 }
