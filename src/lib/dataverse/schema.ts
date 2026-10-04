@@ -7,7 +7,7 @@ export interface TableSpec {
   /** SQL table name */
   sql: string;
   /** key of the array on the Database object */
-  key: "users" | "categories" | "tickets" | "comments" | "assets" | "assetRequests" | "flowRuns";
+  key: "users" | "categories" | "tickets" | "comments" | "assets" | "assetRequests" | "flowRuns" | "notifications";
   columns: Record<string, ColumnKind>;
   /** ORDER BY clause used when loading. Arrays are newest first where code relies on unshift(). */
   orderBy: string;
@@ -96,6 +96,22 @@ export const TABLES: TableSpec[] = [
     columns: { id: "text", flow: "text", trigger: "text", actions: "json", at: "text" },
     constraints: { id: "PRIMARY KEY" },
   },
+  {
+    sql: "notifications",
+    orderBy: "created_at DESC, id",
+    key: "notifications",
+    columns: {
+      id: "text", toAddress: "text", subject: "text", body: "text", ticketId: "text", createdAt: "text",
+      status: "text", attempts: "int", sentAt: "text", lastError: "text",
+    },
+    constraints: {
+      id: "PRIMARY KEY",
+      toAddress: "NOT NULL",
+      subject: "NOT NULL",
+      status: "NOT NULL CHECK (status IN ('pending','sent','failed','skipped'))",
+      attempts: "NOT NULL DEFAULT 0",
+    },
+  },
 ];
 
 // Indexes for the lookups pages make. CREATE INDEX IF NOT EXISTS is safe to run on every connect, so
@@ -106,6 +122,7 @@ export const INDEX_SQL = [
   "CREATE INDEX IF NOT EXISTS idx_tickets_assignee ON tickets(assignee_id)",
   "CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status)",
   "CREATE INDEX IF NOT EXISTS idx_requests_requester ON asset_requests(requester_id)",
+  "CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(status, attempts)",
 ];
 
 export const snake = (s: string) => s.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
