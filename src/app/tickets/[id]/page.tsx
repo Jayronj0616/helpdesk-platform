@@ -29,7 +29,7 @@ export default async function TicketDetail({ params }: PageProps<"/tickets/[id]"
     ["Category", db.categories.find((c) => c.id === t.categoryId)?.name],
     ["Priority", <Badge key="p" tone={priorityTone[t.priority]}>{label(t.priority)}</Badge>],
     ["Created", fmt(t.createdAt)],
-    ["SLA due", fmt(t.dueAt)],
+    ["SLA due", t.status === "waiting" ? "Paused while waiting for the customer" : fmt(t.dueAt)],
     ["Related asset", asset ? `${asset.tag} (${asset.name})` : "None"],
   ];
 

@@ -109,7 +109,7 @@ export default async function Tickets({ searchParams }: PageProps<"/tickets">) {
                   <td className="px-4 py-2">{name(t.assigneeId)}</td>
                   <td className="px-4 py-2"><Badge tone={priorityTone[t.priority]}>{label(t.priority)}</Badge>{t.escalated && <span className="ml-1 text-xs text-red-600">escalated</span>}</td>
                   <td className="px-4 py-2"><Badge tone={statusTone[t.status]}>{label(t.status)}</Badge></td>
-                  <td className={`px-4 py-2 ${late ? "font-medium text-red-600" : ""}`}>{fmt(t.dueAt)}{late && " (late)"}</td>
+                  <td className={`px-4 py-2 ${late ? "font-medium text-red-600" : ""}`}>{t.status === "waiting" ? <span title="The SLA clock is paused while we wait for the customer">Paused</span> : <>{fmt(t.dueAt)}{late && " (late)"}</>}</td>
                 </tr>
               );
             })}
