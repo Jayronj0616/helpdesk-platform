@@ -39,6 +39,7 @@ Status key: `[x]` done, `[~]` in progress, `[ ]` to do.
 - [x] Reopen a resolved ticket (7-day window, reason required, SLA restarts, "reopened" flow)
 - [x] SLA clock pauses while a ticket is Waiting on the customer, and gives the time back on resume (migration 4)
 - [x] Scheduled maintenance: auto-close tickets resolved over a week ago, a manager button for it, and a CRON_SECRET-protected cron endpoint (`vercel.json`, daily) that runs escalation and auto-close
+- [x] Real flow emails through a transactional outbox: queued in the flow's own transaction, delivered after the response with retries, skipped for reserved addresses and when email is off, queue visible to managers with a manual send button
 - [x] GitHub Actions CI (lint, types, unit tests, build, e2e), passing on Linux
 - [x] **Versioned migrations** (`migrations.ts`, version in `meta`), safe on concurrent startup
 - [x] **Deactivate and reactivate users** (never delete): blocks sign-in, ends sessions, unassigns open tickets, hidden from assignee lists and flows
@@ -53,7 +54,6 @@ Nothing in progress. Pick from the backlog.
 ## Backlog
 - [ ] **Deploy** (needs the owner's accounts): create the Turso database, set the env vars from `docs/DEPLOY.md`, deploy, and record anything that differs from the doc (the Turso path is untested)
 - [ ] **After deploying:** request a password reset for your own address to confirm Resend delivery (only unit tested with a mocked `fetch`)
-- [ ] Send the notification emails the flows currently only simulate (reuse `sendMail`)
 
 ## Decisions
 See `docs/DECISIONS.md`.

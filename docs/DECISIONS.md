@@ -83,5 +83,8 @@ A ticket parked on the customer was being escalated for a delay that was not the
 ## 27. Time-based flows run from a protected cron endpoint
 Escalation and auto-close were buttons, which is not an automation. A cron endpoint that Vercel calls on a schedule makes them real without a worker process, and it is safe to leave in the codebase because it does not exist unless `CRON_SECRET` is set and compares the secret in constant time. Auto-close and the reopen window share one constant (`REOPEN_WINDOW_DAYS`), and a test checks that for every age the flow closes exactly the tickets `canReopen` refuses, so a ticket can never be both closed and reopenable. The default schedule is daily because that is what a free Vercel plan accepts; a deploy with a more frequent schedule is rejected there.
 
-## 28. Small commits
+## 28. A transactional outbox for notifications
+The flows only pretended to send email. Sending inside the flow would couple every ticket update to a mail provider (a slow or failing provider would break or delay saving a ticket), and it could send mail for a change that then rolls back. So a flow only writes a row into the same transaction as its change, and a separate step delivers it. That gives "no change, no email" (tested with a rollback), retries with a visible reason, and a safe place to skip addresses that must never be mailed. The price is at-least-once delivery, which is the honest guarantee without a distributed transaction, and a small outbox table that is pruned on every write because the whole database is rewritten per save. The Teams alert stays a log line because Teams is not integrated, and the log says so instead of claiming it was sent.
+
+## 29. Small commits
 The owner wants one logical change per commit (it also reads well in history and helps their GitHub contribution graph).

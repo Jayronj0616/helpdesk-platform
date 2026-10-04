@@ -12,6 +12,7 @@ Source of truth is `src/lib/dataverse/types.ts`. This doc explains the meaning a
 | `comments` | id, ticketId, authorId? (null for system), body, kind (`comment`/`system`), internal, createdAt | `system` = audit trail written by actions and flows. `internal` = staff-only note. |
 | `assets` | id, tag, name, type, status (`available`/`assigned`/`repair`/`retired`), assignedToId?, purchasedAt | |
 | `assetRequests` | id, assetType, justification, requesterId, status (`pending`/`approved`/`rejected`), decidedById?, decidedAt?, createdAt | Decision triggers a flow |
+| `notifications` | id, toAddress, subject, body, ticketId?, createdAt, status (`pending`/`sent`/`failed`/`skipped`, database CHECK), attempts, sentAt?, lastError? | The email outbox: flows add `pending` rows inside their own transaction, `deliverPending()` sends them. Kept 7 days, at most 200 rows (pruned on every queue). |
 | `flowRuns` | id, flow, trigger, actions[], at | Newest first, capped at 100 |
 
 Relations: ticket -> user (requester, assignee), category, asset; comment -> ticket, user; assetRequest -> user; asset -> user.

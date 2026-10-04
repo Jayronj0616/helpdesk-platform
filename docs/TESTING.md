@@ -29,6 +29,8 @@ Most logic is pure functions over a `Database`, so those tests build a fresh `se
 | `tests/rate-limit.test.ts` | Database-backed limiter: window, independent keys, reset, shared across instances, only hashed keys stored, old attempts purged |
 | `tests/reset.test.ts` | Reset tokens: unknown and deactivated accounts get none, stored hashed, a new request replaces the old link, expiry, single use even under a race, weak password does not burn the link, cancelled by other password changes, dead if the account is deactivated afterwards, signs out all sessions |
 | `tests/mail.test.ts` | `mailMode` and `appUrl` for every combination (including never trusting the request host in production), `passwordResetAvailable`, sending through Resend (bearer key, body), provider errors without leaking the key, dev outbox, refusing to send in production with no provider |
+| `tests/notifications-queue.test.ts` | `queueMail`, pruning (pending and retrying kept, week-old finished dropped, 200 cap), and exactly which email each flow queues, to whom, and that quiet runs queue nothing |
+| `tests/notifications-deliver.test.ts` | Delivery against a real database in every mail mode: dev outbox with ticket link, provider send, reserved addresses never sent, production with no provider skipped, failure recorded then retried, five-attempt limit and manual retry, two workers send each email once (checked by removing the guard), batch limit, oldest first, **rollback means no email**, marking survives later saves, `isReservedAddress` |
 | `tests/cron.test.ts` | The cron endpoint: 404 without `CRON_SECRET`, 401 for a missing, wrong or malformed secret (and nothing runs), 200 with the right one with both flows run and saved, safe to repeat |
 | `tests/health.test.ts` | Health endpoint: ok, no-store, and a bare 503 with no details on failure |
 | `tests/partial-reads.test.ts` | `readDb` with a table list (only those keys, one batched round trip, never queries the others, same rows and order as a full read), `readComments` (one ticket, oldest first, not injectable), the indexes exist and the comments lookup uses one |
@@ -52,7 +54,7 @@ Playwright drives the **already installed Chrome** (no browser download; `E2E_BR
 | `03-staff-and-manager` | Agent: all tickets, internal notes (hidden from the requester), audit entries, add asset (uppercased tag, duplicate rejected, status edit), cannot approve. Manager: approve assigns an asset, escalation, reject |
 | `04-admin` | Create an agent who can sign in, demote (unassigns tickets), deactivate and reactivate, session ended immediately on deactivation, password reset signs the user out, own role locked |
 | `03-feedback` | A requester must choose a rating, rates a resolved ticket once, sees the saved rating and a thank-you, the form never comes back, staff see it but cannot rate, dashboard averages (own 4.0, manager 4.5) |
-| `03-reopen` | Open tickets have no reopen form, a reason is required, reopening shows the history and the flow run, closed and other people's tickets cannot be reopened |
+| `03-reopen` | The email to the assignee is delivered to the dev outbox and shown as sent in the manager's queue, open tickets have no reopen form, a reason is required, reopening shows the history and the flow run, closed and other people's tickets cannot be reopened |
 | `04-categories` | Managers only (404 otherwise), add, duplicate refused, the ticket form follows, rename, delete, a category with tickets cannot be deleted |
 | `04-export` | An employee cannot export (403, no button), signed-out is 401, staff get a filtered CSV, a formula title is neutralised, and the button downloads a real file |
 | `05-accessibility` | axe (WCAG 2 A and AA) on public, employee, staff and manager pages with no serious or critical violations, plus a keyboard-only sign-in |
@@ -68,7 +70,7 @@ A test that passes alone can fail in the full run if an earlier file changed the
 | `01-auth` | Registers `e2e.newhire@contoso.test` (password `a-long-password-1`) |
 | `02-employee` | Maria creates ticket 1007 and a comment and a request |
 | `03-feedback` | Maria rates ticket 1003 (4) |
-| `03-reopen` | Maria reopens ticket 1003 (back to in progress, Ana) |
+| `03-reopen` | Maria reopens ticket 1003 (back to in progress, Ana), which queues and delivers an email to Ana |
 | `03-staff-and-manager` | Ana's notes and status edits, asset E2E-001, request approved (MN-0001 to Maria) and rejected, escalation of ticket 1001 |
 | `04-admin` | Creates Sam, **demotes Ana to employee**, deactivates and reactivates Ben and Carlo, **resets Carlo's password** |
 | `04-categories` | Adds, renames and deletes a category |

@@ -116,6 +116,8 @@ In Dataverse this is usually done with an **SLA** record (Customer Service) that
 - **Actions**: *Update a row*: Due At = `addHours(utcNow(), <SLA hours for the priority>)`, Escalated = No, Resolved On cleared; *Send an email (V2)* to the assignee, or to the manager when the Assignee lookup is empty.
 - Interview point: the *filter columns* setting stops the flow firing on every edit of the row, which is the usual cause of runaway flows and wasted API calls. Customer satisfaction is just three more Ticket columns; a canvas app screen shown to the requester when Status is Resolved would collect it, and a Power BI average over the Rating column gives the dashboard tile.
 
+**Email from flows:** in Power Automate the *Send an email (V2)* action sends immediately and a flow run that fails after it can leave the email already sent. If that matters, queue the message in a Dataverse table (an "Outbox" with To, Subject, Body, Status, Attempts) in the same step as the change, and use a second flow, triggered on *row added* or on a schedule, to send it, mark it Sent, and retry on failure. That is the same transactional-outbox pattern this project uses in code.
+
 Interview points: approvals show up for the manager in Teams, Outlook and the Power Automate Approvals center with no extra UI work. Use **Run history** to debug (this is what the `/flows` page imitates). Put connection references and environment variables in the solution so it deploys cleanly.
 
 ## 4. Power BI report (replaces the dashboard KPI tiles)

@@ -61,6 +61,9 @@ src/
       sessions.ts         createSession, getSessionUser, destroySession, destroyUserSessions (hashed tokens in SQL)
       reset.ts            createResetToken, isResetTokenValid, consumeResetToken (single use, hashed, expiring)
       rate-limit.ts       Database-backed sliding-window limiter (hashed keys) for login, register, password change
+    notifications/
+      queue.ts            queueMail, prune (the pure, transactional half: edits the Database a flow is working on)
+      deliver.ts          deliverPending, retryFailedAndDeliver, isReservedAddress (sends, retries, records the result)
     flows/index.ts        Automation flows (Power Automate analog). Each logs a FlowRun.
     csv.ts                csvCell, toCsv (quoting plus spreadsheet formula neutralising)
     mail.ts               sendMail (Resend provider, dev outbox, or off), mailMode, appUrl, passwordResetAvailable

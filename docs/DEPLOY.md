@@ -30,6 +30,8 @@ Without email, the "Forgot your password?" link is hidden in production, and man
 - `APP_URL` = the public address, for example `https://your-app.vercel.app` (required: reset links are built from it, never from the request's Host header, so they cannot be poisoned)
 - `RESEND_API_KEY` and `MAIL_FROM` from https://resend.com (the sender must be on a domain you verified there)
 
+Flows use the same mailer to send real notifications (new ticket to the agent, SLA breach to the manager, request decisions, closures and reopens). With no provider in production they are recorded as skipped, so nothing breaks; addresses on reserved domains (including the `@contoso.test` demo accounts) are never sent to even with a provider. Managers can watch the queue on **Flow runs**. Delivery is at-least-once, so very rarely an email can be sent twice.
+
 The Resend call is covered by unit tests with a mocked `fetch`, but it has **not** been run against the real service. After deploying, request a reset for your own address and read the first mail before relying on it.
 
 ## 2c. Scheduled flows (optional)
