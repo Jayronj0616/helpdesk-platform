@@ -15,7 +15,7 @@ export function seedProduction(adminEmail: string): Database {
   return {
     nextTicketNumber: 1001,
     comments: [],
-    users: [{ id: "u_admin", name: "Administrator", email: adminEmail.trim().toLowerCase(), role: "manager", department: "IT" }],
+    users: [{ id: "u_admin", name: "Administrator", email: adminEmail.trim().toLowerCase(), role: "manager", department: "IT", active: true }],
     categories: defaultCategories(),
     tickets: [],
     assets: [],
@@ -34,11 +34,11 @@ export function seedDatabase(): Database {
       { id: "m4", ticketId: "t2", authorId: "u4", body: "Please confirm which Wi-Fi network you are on when it fails.", kind: "comment", internal: false, createdAt: hoursAgo(5) },
     ],
     users: [
-      { id: "u1", name: "Maria Santos", email: "maria@contoso.test", role: "employee", department: "Finance" },
-      { id: "u2", name: "Carlo Reyes", email: "carlo@contoso.test", role: "employee", department: "Sales" },
-      { id: "u3", name: "Ana Cruz", email: "ana@contoso.test", role: "agent", department: "IT" },
-      { id: "u4", name: "Ben Lim", email: "ben@contoso.test", role: "agent", department: "IT" },
-      { id: "u5", name: "Dina Ramos", email: "dina@contoso.test", role: "manager", department: "IT" },
+      { id: "u1", name: "Maria Santos", email: "maria@contoso.test", role: "employee", department: "Finance", active: true },
+      { id: "u2", name: "Carlo Reyes", email: "carlo@contoso.test", role: "employee", department: "Sales", active: true },
+      { id: "u3", name: "Ana Cruz", email: "ana@contoso.test", role: "agent", department: "IT", active: true },
+      { id: "u4", name: "Ben Lim", email: "ben@contoso.test", role: "agent", department: "IT", active: true },
+      { id: "u5", name: "Dina Ramos", email: "dina@contoso.test", role: "manager", department: "IT", active: true },
     ],
     categories: defaultCategories(),
     tickets: [
