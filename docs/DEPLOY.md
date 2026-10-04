@@ -35,8 +35,8 @@ With `DEMO_MODE=0` and no `ADMIN_EMAIL` or `ADMIN_PASSWORD`, the first request f
 
 ## 4. Things to know
 - **Seeding happens once**, on the first request, guarded by a `seeded` flag in the database. Changing `DEMO_PASSWORD` or `ADMIN_PASSWORD` later does not change existing accounts; use the Account page or Users, Reset password.
-- **Rate limiting is per server instance and in memory.** On Vercel each cold instance starts with an empty counter, so it slows guessing but does not stop a determined attacker. Put a shared store (Upstash Redis) behind `src/lib/auth/rate-limit.ts` before relying on it.
+- **Rate limiting is stored in the database** (hashed keys), so it holds across Vercel instances. It adds one write per sign-in attempt. `x-forwarded-for` is trusted for the IP part of the key, which Vercel sets, so do not run this behind a proxy that lets clients set it.
 - **Latency:** each request is one round trip to read and one to write, so keep the Turso region near the Vercel region.
 - **Every request loads every table.** Fine for hundreds of tickets, so plan targeted queries (see PROGRESS backlog) before it grows into the thousands.
 - **Secrets** live only in Vercel's environment settings. `.env*` files are gitignored, except `.env.example`.
-- **Schema changes** to an existing database need a real migration: `CREATE TABLE IF NOT EXISTS` never alters tables. Until migrations exist, avoid changing columns on a database that holds data you care about.
+- **Schema changes** are applied automatically on the first request after a deploy, through the numbered migrations in `src/lib/dataverse/migrations.ts` (each in one batch with its version bump). Back up the Turso database (`turso db shell` or a branch) before deploying a release that adds a migration.
