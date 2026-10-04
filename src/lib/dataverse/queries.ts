@@ -1,4 +1,4 @@
-import type { Database, Priority, Ticket, TicketStatus } from "./types";
+import { PRIORITIES, TICKET_STATUSES, type Database, type Priority, type Ticket, type TicketStatus } from "./types";
 
 export const isOpen = (t: Ticket) => t.status === "new" || t.status === "in_progress" || t.status === "waiting";
 
@@ -34,6 +34,31 @@ export function paginate<T>(items: T[], requestedPage: number, pageSize = PAGE_S
   const page = Math.min(Math.max(1, Math.floor(requestedPage) || 1), pages);
   return { items: items.slice((page - 1) * pageSize, page * pageSize), page, pages, total: items.length };
 }
+
+export const SORTS = [
+  ["newest", "Newest first"],
+  ["oldest", "Oldest first"],
+  ["due", "Due soonest"],
+  ["priority", "Highest priority"],
+] as const;
+
+const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : undefined);
+const pick = <T extends string>(v: string | undefined, allowed: readonly T[]) => allowed.find((a) => a === v);
+
+/** Turns URL query values into filters, ignoring anything that is not a valid option. */
+export function parseTicketFilters(params: Record<string, string | string[] | undefined>, db: Pick<Database, "categories">): TicketFilters {
+  return {
+    q: one(params.q),
+    status: pick(one(params.status), TICKET_STATUSES),
+    priority: pick(one(params.priority), PRIORITIES),
+    categoryId: db.categories.find((c) => c.id === one(params.category))?.id,
+    assignee: one(params.assignee),
+    overdue: one(params.overdue) === "1",
+    sort: pick(one(params.sort), SORTS.map((s) => s[0])),
+  };
+}
+
+export const hasFilters = (f: TicketFilters) => Boolean(f.q || f.status || f.priority || f.categoryId || f.assignee || f.overdue);
 
 const PRIORITY_RANK: Record<Priority, number> = { low: 0, medium: 1, high: 2, critical: 3 };
 
