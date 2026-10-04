@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { AUTH_SQL, TABLES, createTableSql } from "./schema";
+import { runMigrations } from "./migrations";
 
 // One client per server process. DATABASE_URL accepts a local file (file:data/helpdesk.db) or a
 // hosted libSQL/Turso URL (libsql://...) with DATABASE_AUTH_TOKEN.
@@ -19,7 +20,10 @@ export function getDb(): Promise<Client> {
     // A local SQLite file needs this switched on. Hosted libSQL/Turso enforces foreign keys already
     // and may refuse the pragma, which is fine.
     await client.execute("PRAGMA foreign_keys = ON").catch(() => undefined);
+    // No users table yet means a brand-new database, created below from schema.ts at the latest version.
+    const fresh = (await client.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'users'")).rows.length === 0;
     await client.batch([...TABLES.map(createTableSql), ...AUTH_SQL], "write");
+    await runMigrations(client, fresh);
     return client;
   })().catch((err) => {
     ready = undefined; // a failed connect (for example a network blip on a cold start) is retried next request
