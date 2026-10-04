@@ -1,9 +1,12 @@
 "use server";
 
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { authenticate, changeOwnPassword, normalizeEmail, registerUser } from "@/lib/auth/credentials";
 import { loginLimiter } from "@/lib/auth/rate-limit";
+import { consumeResetToken, createResetToken } from "@/lib/auth/reset";
+import { appUrl, passwordResetAvailable, sendMail } from "@/lib/mail";
 import type { FormState } from "@/lib/form-state";
 import { SESSION_COOKIE, endSession, requireUser, startSession } from "@/lib/session";
 
@@ -74,4 +77,57 @@ export async function changePassword(_prev: FormState, formData: FormData): Prom
 
   await loginLimiter.reset(`password|${user.id}`);
   return { message: "Password changed. Your other devices were signed out." };
+}
+
+const GENERIC_RESET_MESSAGE = "If an account exists for that email, we have sent a link to reset the password. It works for one hour.";
+
+export async function requestPasswordReset(_prev: FormState, formData: FormData): Promise<FormState> {
+  if (!passwordResetAvailable()) return { error: "Password reset is not available here. Ask an administrator to reset your password." };
+  const email = String(formData.get("email") ?? "").trim();
+  const values = { email };
+  if (!email) return { error: "Enter your email address.", values };
+
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
+  if (!(await loginLimiter.attempt(`reset-ip|${ip}`))) return { error: "Too many attempts. Try again in 15 minutes.", values };
+  // A second limit per address, so one person's inbox cannot be flooded from many IPs. When it trips we still
+  // give the normal answer, so the limit does not reveal anything either.
+  const allowedForAddress = await loginLimiter.attempt(`reset-email|${normalizeEmail(email)}`);
+
+  const base = appUrl(h.get("x-forwarded-host") ?? h.get("host"), h.get("x-forwarded-proto"));
+  if (base && allowedForAddress) {
+    // after() runs once the response has gone, so the page takes the same time whether or not the account exists.
+    after(async () => {
+      try {
+        const created = await createResetToken(email);
+        if (!created) return;
+        await sendMail({
+          to: created.user.email,
+          subject: "Reset your HelpDesk password",
+          text: [
+            `Hi ${created.user.name},`,
+            "",
+            "Someone asked to reset the password for your HelpDesk account. To choose a new one, open this link within one hour:",
+            "",
+            `${base}/reset-password/${created.token}`,
+            "",
+            "If you did not ask for this, ignore this email. Your password has not changed.",
+          ].join("\n"),
+        });
+      } catch (err) {
+        console.error("password reset email failed:", err);
+      }
+    });
+  }
+  return { message: GENERIC_RESET_MESSAGE, values };
+}
+
+export async function completePasswordReset(_prev: FormState, formData: FormData): Promise<FormState> {
+  if (!passwordResetAvailable()) return { error: "Password reset is not available here." };
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? "local";
+  if (!(await loginLimiter.attempt(`reset-use|${ip}`))) return { error: "Too many attempts. Try again in 15 minutes." };
+
+  const result = await consumeResetToken(String(formData.get("token") ?? ""), String(formData.get("password") ?? ""));
+  if (!result.ok) return { error: result.error };
+  redirect("/login?reset=1");
 }
