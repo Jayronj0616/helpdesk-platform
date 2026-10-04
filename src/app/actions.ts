@@ -11,6 +11,7 @@ import { addComment, addSystemEntry } from "@/lib/dataverse/comments";
 import { label } from "@/components/ui";
 import { createAsset, requestTypes, updateAsset, updateProfile } from "@/lib/dataverse/admin";
 import type { FormState } from "@/lib/form-state";
+import { rateTicket } from "@/lib/dataverse/feedback";
 
 export async function createTicket(formData: FormData) {
   const user = await requireUser();
@@ -31,7 +32,7 @@ export async function createTicket(formData: FormData) {
       id: newId("t"), number: db.nextTicketNumber++, title, description,
       requesterId: user.id, assigneeId: null, categoryId, priority,
       status: "new" as TicketStatus, assetId, createdAt: now, updatedAt: now,
-      dueAt: now, resolvedAt: null, escalated: false,
+      dueAt: now, resolvedAt: null, escalated: false, rating: null, ratingComment: null, ratedAt: null,
     };
     db.tickets.unshift(ticket);
     onTicketCreated(db, ticket);
@@ -181,4 +182,18 @@ export async function updateProfileAction(_prev: FormState, formData: FormData):
   if (!result.ok) return { error: result.error, values };
   revalidatePath("/", "layout"); // the name is shown in the nav and on tickets
   return { message: "Profile saved." };
+}
+
+export async function rateTicketAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const ticketId = String(formData.get("ticketId") ?? "");
+  const rating = Number(formData.get("rating"));
+  const comment = String(formData.get("comment") ?? "");
+  const values = { comment };
+  if (!formData.get("rating")) return { error: "Choose a rating from 1 to 5.", values };
+
+  const result = await mutate((db) => rateTicket(db, user.id, ticketId, rating, comment));
+  if (!result.ok) return { error: result.error, values };
+  revalidatePath("/", "layout"); // the dashboard average changes too
+  return { message: "Thank you for your feedback." };
 }
