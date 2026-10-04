@@ -9,14 +9,15 @@ An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power P
 - Everything in PROGRESS.md under "Done" works. Run `git status -sb` to see whether anything is unpushed.
 - Real auth and a real database are in (SQLite via `@libsql/client`; hosted Turso in production, because Vercel's disk is read-only and temporary).
 - Admin features are in: `/admin/users` (managers), `/account` (everyone), asset add and edit (staff), and a production first-run mode (`DEMO_MODE=0` plus `ADMIN_EMAIL` and `ADMIN_PASSWORD`).
-- Verified: 156 unit tests (`npm test`), 45 Playwright end-to-end tests (`npm run test:e2e`, real Chrome, includes axe accessibility checks), lint (including type-aware promise rules), types and build are clean. GitHub Actions runs all of it on every push.
-- Also built: versioned schema migrations, user deactivation, a database-backed rate limiter, a reset that restores demo passwords, password reset by email (Resend, or a dev outbox), security headers, `/api/health`, generated README screenshots.
+- Verified: 221 unit tests (`npm test`), 55 Playwright end-to-end tests (`npm run test:e2e`, real Chrome, includes axe accessibility checks), lint (including type-aware promise rules), types and build are clean. GitHub Actions runs all of it on every push and is green.
+- Also built: versioned schema migrations (3 so far), user deactivation, a database-backed rate limiter, a reset that restores demo passwords, password reset by email (Resend, or a dev outbox), security headers, `/api/health`, generated README screenshots, profile editing, manager-managed categories, CSV export with formula protection, customer satisfaction ratings, reopening resolved tickets (with a "reopened" flow), and scoped reads (`readDb([...tables])`, `readComments`, indexes).
 - Production-build behaviour was checked by hand: without an email provider the reset pages and `/dev/outbox` are 404 and the login link is hidden.
 - **Not verified:** anything against a real Turso database (only a local libSQL file), and real email delivery through Resend (only unit tested with a mocked `fetch`).
 
 ## Next step
 1. **Deploy** (needs the owner): follow `docs/DEPLOY.md`. Afterwards open `/api/health`, fix the doc with whatever differed, and send yourself a password reset email to confirm Resend works.
-2. Then: send the notification emails the flows only simulate today (reuse `sendMail`), and targeted queries instead of loading every table.
+2. Then, if wanted: send the notification emails the flows only simulate today (reuse `sendMail`, ideally through a transactional outbox so a rollback never sends mail), an SLA pause while a ticket is Waiting, and targeted statements for the hot write paths if data grows past the low thousands of rows.
+3. Branch note: the repository's only branch is `master`, and every task has been pushed there.
 
 ## Gotchas
 - Next.js 16: `params` and `searchParams` are Promises; use `PageProps<"/route">` types. Read `node_modules/next/dist/docs/` if unsure.
