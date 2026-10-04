@@ -95,6 +95,6 @@ data/helpdesk.db          Local SQLite database, gitignored, created and seeded 
 
 ## Verify before committing
 ```bash
-npx eslint . && npx tsc --noEmit && npm test && npm run build
+npx eslint . && npm run typecheck && npm test && npm run build
 npm run test:e2e   # when pages, actions or auth changed
 ```

@@ -4,9 +4,11 @@ Verification is unit tests (Vitest), end-to-end browser tests (Playwright), stat
 
 ## Always before committing
 ```bash
-npx eslint . && npx tsc --noEmit && npm test && npm run build
+npx eslint . && npm run typecheck && npm test && npm run build
 ```
 Run `npm run test:e2e` as well when you change a page, an action, or anything about auth. It takes about two minutes.
+
+`npm run typecheck` runs `next typegen` first, because `PageProps` and `LayoutProps` are generated into the gitignored `.next/types` folder; a bare `tsc` fails on a fresh clone (this is what CI hit). The same generation happens on `npm run dev` and `npm run build`.
 
 Lint includes type-aware rules (`no-floating-promises`, `no-misused-promises`, `await-thenable`) for `src/`. They exist because `if (!limiter.attempt(key))` compiles when `attempt` is async but never blocks anything.
 

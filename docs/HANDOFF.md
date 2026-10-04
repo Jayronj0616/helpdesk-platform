@@ -41,4 +41,4 @@ git pull
 npm install
 npm run dev        # http://localhost:3000, sign in with a demo account
 ```
-Then read PROGRESS.md and continue. Before committing: `npx eslint . && npx tsc --noEmit && npm test && npm run build`.
+Then read PROGRESS.md and continue. Before committing: `npx eslint . && npm run typecheck && npm test && npm run build`.
