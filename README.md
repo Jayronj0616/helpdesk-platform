@@ -20,6 +20,7 @@ An IT helpdesk and asset tracker built with Next.js. It is structured like a Mic
 - **Flow: Asset request approval**: managers approve or reject. Approving assigns an available asset from stock.
 - **Flow runs**: every run and the actions it took.
 - **Assets**: IT staff add assets and change status and holder.
+- **Password reset by email** (with a provider; a dev outbox otherwise), a health endpoint, security headers, and automated accessibility checks.
 - **Users** (managers): create staff accounts, change roles, reset passwords, deactivate accounts. **Account**: everyone can change their own password.
 
 Sign in as any demo account (listed on the login page) to try each role: employee, agent or manager. You can also register a new employee account.
