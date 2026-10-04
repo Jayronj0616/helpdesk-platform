@@ -16,9 +16,14 @@ export function getDb(): Promise<Client> {
       fs.mkdirSync(path.dirname(URL.slice("file:".length)), { recursive: true });
     }
     client = createClient({ url: URL, authToken: process.env.DATABASE_AUTH_TOKEN });
-    await client.execute("PRAGMA foreign_keys = ON");
+    // A local SQLite file needs this switched on. Hosted libSQL/Turso enforces foreign keys already
+    // and may refuse the pragma, which is fine.
+    await client.execute("PRAGMA foreign_keys = ON").catch(() => undefined);
     await client.batch([...TABLES.map(createTableSql), ...AUTH_SQL], "write");
     return client;
-  })();
+  })().catch((err) => {
+    ready = undefined; // a failed connect (for example a network blip on a cold start) is retried next request
+    throw err;
+  });
   return ready;
 }
