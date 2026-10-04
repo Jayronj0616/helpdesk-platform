@@ -1,4 +1,4 @@
-import type { Database, Ticket } from "./types";
+import type { Database, Ticket, TicketStatus } from "./types";
 import { SLA_HOURS } from "./types";
 import { addComment, addSystemEntry } from "./comments";
 import { onTicketReopened } from "../flows";
@@ -34,6 +34,7 @@ export function reopenTicket(db: Database, userId: string, ticketId: string, rea
   ticket.assigneeId = holder?.id ?? null;
   ticket.status = holder ? "in_progress" : "new";
   ticket.resolvedAt = null;
+  ticket.waitingSince = null;
   ticket.escalated = false; // a fresh SLA clock starts now
   ticket.dueAt = new Date(now.getTime() + SLA_HOURS[ticket.priority] * 3_600_000).toISOString();
   ticket.updatedAt = now.toISOString();
@@ -42,4 +43,35 @@ export function reopenTicket(db: Database, userId: string, ticketId: string, rea
   addComment(db, { ticketId: ticket.id, authorId: user.id, body: text, internal: false });
   onTicketReopened(db, ticket);
   return { ok: true };
+}
+
+const hours = (ms: number) => `${Math.round(ms / 360_000) / 10}h`;
+
+/**
+ * Moves a ticket to a new status and keeps its SLA clock honest. While a ticket is Waiting on the
+ * customer the clock is paused: entering Waiting records when, and leaving Waiting for another open
+ * status pushes the due date back by the time spent waiting. Resolving or closing from Waiting just
+ * ends the pause. Returns a short note for the ticket's history when the clock paused or resumed.
+ */
+export function applyStatusChange(ticket: Ticket, next: TicketStatus, now = new Date()): string | null {
+  if (ticket.status === next) return null;
+  let note: string | null = null;
+
+  if (ticket.status === "waiting" && ticket.waitingSince) {
+    if (next === "new" || next === "in_progress") {
+      const paused = now.getTime() - new Date(ticket.waitingSince).getTime();
+      ticket.dueAt = new Date(new Date(ticket.dueAt).getTime() + Math.max(0, paused)).toISOString();
+      note = `SLA clock resumed: due date moved ${hours(paused)} later for the time spent waiting`;
+    }
+    ticket.waitingSince = null;
+  }
+  if (next === "waiting") {
+    ticket.waitingSince = now.toISOString();
+    note = "SLA clock paused while waiting for the customer";
+  }
+
+  ticket.status = next;
+  ticket.updatedAt = now.toISOString();
+  ticket.resolvedAt = next === "resolved" || next === "closed" ? (ticket.resolvedAt ?? ticket.updatedAt) : null;
+  return note;
 }
