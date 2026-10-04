@@ -3,32 +3,30 @@
 The one-page state of the project. **Rewrite this at the end of every working session** (keep it under a page). It is for the next session, human or AI, who has not seen this conversation.
 
 ## What this project is
-An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power Platform solution (data layer = Dataverse, pages = Power Apps, flows = Power Automate, dashboard = Power BI). Its purpose is a portfolio piece plus interview prep for a role using the Power Platform. Repo: github.com/Jayronj0616/helpdesk-platform (public, branch `master`).
+An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power Platform solution (data layer = Dataverse, pages = Power Apps, flows = Power Automate, dashboard = Power BI). Its purpose is a portfolio piece plus interview prep for a role using the Power Platform. Repo: github.com/Jayronj0616/helpdesk-platform (public, branch `master`). The owner plans to deploy it to **Vercel**.
 
 ## State (as of 2026-10-04)
 - Everything in PROGRESS.md under "Done" works. Run `git status -sb` to see whether anything is unpushed.
-- **Real auth and a real database are in.** SQLite through `@libsql/client` (`data/helpdesk.db`), email and password sign-in, hashed server-side sessions, rate limiting, employee-only registration. The persona switcher and JSON file are gone.
-- Verified: 80 unit tests pass (`npm test`), lint, types and build are clean, and the sign-in, registration, flows, approval, escalation and reset paths were run in a real browser (see TESTING.md).
+- Real auth and a real database are in (SQLite via `@libsql/client`; hosted Turso in production, because Vercel's disk is read-only and temporary).
+- Admin features are in: `/admin/users` (managers), `/account` (everyone), asset add and edit (staff), and a production first-run mode (`DEMO_MODE=0` plus `ADMIN_EMAIL` and `ADMIN_PASSWORD`).
+- Verified: 109 unit tests pass (`npm test`), lint, types and build are clean, and the new features were run in a real browser (see TESTING.md).
+- **Not verified:** anything against a real Turso database. Only a local libSQL file has been used.
 
 ## Next step
-Safe, self-contained tasks:
-1. **README screenshots** and a **Playwright** suite for the manual script in TESTING.md (needs a browser download).
-2. **Admin page** so a manager can create or promote agents and managers (today only the seed or a database insert can).
-3. **Password change** (reset needs email sending, so that is a later step).
-
-Needs a decision or outside setup:
-- **Deploy**: create a hosted Turso database, set `DATABASE_URL` and `DATABASE_AUTH_TOKEN`, change `DEMO_PASSWORD`, and decide whether `DEMO_MODE` stays on for a public demo. Vercel or any serverless host works because there is no local disk dependency once `DATABASE_URL` is remote.
+1. **Deploy** (needs the owner): follow `docs/DEPLOY.md`. After the first deploy, fix that doc with whatever differed, and check cold-start time and the latency of a write.
+2. Then, safe self-contained tasks: README screenshots, a Playwright suite for the manual script, a shared (Redis) rate limiter, deactivating users.
 
 ## Gotchas
 - Next.js 16: `params` and `searchParams` are Promises; use `PageProps<"/route">` types. Read `node_modules/next/dist/docs/` if unsure.
-- `readDb()` and `mutate()` are **async**; always `await`. Every page and action starts with `requireUser()`.
+- `readDb()` and `mutate()` are **async**; always `await`. Every page and action starts with `requireUser()`. Admin actions go through `requireManager()` in `admin-actions.ts`.
 - `Date.now()` in a component fails lint (`react-hooks/purity`). Put time logic in `src/lib/dataverse/queries.ts`.
-- `src/lib/dataverse/schema.ts` and `types.ts` must stay in step. `CREATE TABLE IF NOT EXISTS` never alters an existing table, so a changed column needs a real migration (or delete `data/helpdesk.db` in development).
-- SQL returns rows in insertion order, so each table has an `orderBy` in `schema.ts` to keep arrays newest-first where the code relies on `unshift()`.
-- React 19 clears a form after every server action. Login and register return the entered values (never the password) to refill it.
-- Unit tests depend on the relative dates in `seed.ts`. The DB tests set `DATABASE_URL` before importing the store, because the client is created at import time.
+- `schema.ts` and `types.ts` must stay in step. `CREATE TABLE IF NOT EXISTS` never alters an existing table, so a changed column needs a real migration (or delete `data/helpdesk.db` in development).
+- Each table has an `orderBy` in `schema.ts` to keep arrays newest-first where the code relies on `unshift()`.
+- React 19 clears a form after every server action. Forms that can fail return the entered values (never a password) to refill them (`FormState.values`).
+- `config.ts` reads env vars at import time. Tests that need different env set it before a dynamic `import()`, one test file per scenario (vitest isolates modules per file).
+- Unit tests depend on the relative dates in `seed.ts`.
 - Vitest 5 needs `@types/node` 22 or newer (already upgraded).
-- To sign in during testing: demo accounts and the shared password are on the login page (default `helpdesk-demo`). In a browser tool, use the form; there is no persona cookie any more.
+- To sign in during testing: demo accounts and the shared password are on the login page (default `helpdesk-demo`). The browser tool can fill the login form; `form.requestSubmit()` through JavaScript works for inline forms.
 - Bash heredocs with quotes can fail in this environment, and `python` is a hanging Windows Store stub. Write files with the editor tools and use `node` scripts (a file, not `node -e`, when the text has apostrophes).
 - Windows: git prints CRLF warnings and may exit 255 on success. Check `git log`, not the exit code.
 - The user wants many small, single-purpose commits (they care about GitHub contributions).

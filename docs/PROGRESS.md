@@ -17,24 +17,28 @@ Status key: `[x]` done, `[~]` in progress, `[ ]` to do.
 - [x] Published to GitHub (Jayronj0616/helpdesk-platform)
 - [x] AI handoff docs (AGENTS.md, CLAUDE.md, docs/*)
 - [x] Manager flows verified in a real browser (approve, escalate, reset)
-- [x] Vitest unit tests (flows, queries, comments, password hashing, rate limiter, real SQLite database and auth)
-- [x] **Real database**: SQLite via libSQL (local file, Turso-compatible), transactional writes, foreign keys
+- [x] **Real database**: SQLite via libSQL (local file, Turso-compatible), transactional writes, foreign keys, one round trip to read and one to write
 - [x] **Real authentication**: email and password, scrypt, hashed server-side sessions, HttpOnly cookie, rate limiting, employee-only registration, sign out
-- [x] Persona switcher removed; every page and action requires a session
-- [x] Demo mode flag (login hints and reset button) and `.env.example`
-- [x] Hardening found while migrating: category, assignee and request type validated against the database, input length caps
+- [x] Demo mode flag and `.env.example`
+- [x] **Deploy readiness**: `DEMO_MODE=0` first run creates only categories and one manager from `ADMIN_EMAIL` and `ADMIN_PASSWORD` (fails loudly without them); failed connects and failed first runs are retried; `docs/DEPLOY.md` for Vercel + Turso
+- [x] **Admin page** (`/admin/users`, managers only): create users with any role, change roles (not your own), reset passwords (signs the user out); demotion unassigns open tickets with an audit entry
+- [x] **Account page**: change own password (current password required, other devices signed out)
+- [x] **Asset management** for staff: add assets (unique tag, normalised type) and change status and holder
+- [x] Request types no longer depend on the register (defaults plus register types), so a fresh production database works
+- [x] 109 unit tests (flows, queries, comments, admin rules, password hashing, rate limiter, real SQLite database, accounts, production first run)
+- [x] Everything above verified in a real browser, including access control (employees get 404 on `/admin/users`)
 
 ## Current
 Nothing in progress. Pick from the backlog.
 
 ## Backlog
+- [ ] **Deploy** (needs the owner's accounts): create the Turso database, set the env vars from `docs/DEPLOY.md`, deploy, and record anything that differs from the doc (the Turso path is untested)
 - [ ] Playwright end-to-end tests for the manual script in TESTING.md
 - [ ] README screenshots
-- [ ] Deploy: needs a hosted Turso database (`DATABASE_URL`, `DATABASE_AUTH_TOKEN`), `DEMO_PASSWORD` changed, and a decision on `DEMO_MODE`
-- [ ] Admin page for managers to create or promote agent and manager accounts (today only the seed or a database insert can)
-- [ ] Password change and password reset (reset needs email sending)
+- [ ] Shared rate limiter (Upstash Redis) for serverless, since the in-memory one resets per instance
+- [ ] Password reset by email (needs an email provider)
+- [ ] Deactivate (not delete) a user account
 - [ ] Replace load-everything-per-request in `readDb()` with targeted queries if data grows
-- [ ] Shared rate limiter (Redis) and trusted-proxy handling of `x-forwarded-for` if running more than one instance
 - [ ] Real schema migrations (today `CREATE TABLE IF NOT EXISTS` only creates; it does not alter existing tables)
 
 ## Decisions
