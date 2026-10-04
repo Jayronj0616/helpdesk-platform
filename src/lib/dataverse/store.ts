@@ -169,11 +169,25 @@ export function mutate<T>(fn: (db: Database) => T): Promise<T> {
   return run;
 }
 
-// Restores the demo data. Users who registered themselves are removed along with their sessions.
+// Restores the demo data, including the demo accounts' passwords, because anyone can change those on a
+// public demo and would otherwise lock every later visitor out. Users who registered themselves are
+// removed along with their sessions. Sessions of the demo accounts are kept, so the manager who
+// pressed the button stays signed in.
 export async function resetDb(): Promise<void> {
+  const seed = seedDatabase();
   await mutate((db) => {
     Object.assign(db, seedDatabase());
   });
+  const client = await getDb();
+  await client.batch(
+    await Promise.all(
+      seed.users.map(async (u) => ({
+        sql: "INSERT INTO auth_credentials (user_id, password_hash) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET password_hash = excluded.password_hash",
+        args: [u.id, await hashPassword(DEMO_PASSWORD)],
+      })),
+    ),
+    "write",
+  );
 }
 
 export function newId(prefix: string): string {
