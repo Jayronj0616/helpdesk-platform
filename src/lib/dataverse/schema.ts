@@ -23,8 +23,13 @@ export const TABLES: TableSpec[] = [
     sql: "users",
     orderBy: "email",
     key: "users",
-    columns: { id: "text", name: "text", email: "text", role: "text", department: "text" },
-    constraints: { id: "PRIMARY KEY", email: "NOT NULL UNIQUE", role: "NOT NULL CHECK (role IN ('employee','agent','manager'))" },
+    columns: { id: "text", name: "text", email: "text", role: "text", department: "text", active: "bool" },
+    constraints: {
+      id: "PRIMARY KEY",
+      email: "NOT NULL UNIQUE",
+      role: "NOT NULL CHECK (role IN ('employee','agent','manager'))",
+      active: "NOT NULL DEFAULT 1",
+    },
   },
   {
     sql: "categories",
@@ -112,5 +117,7 @@ export const AUTH_SQL = [
      FOREIGN KEY (user_id) REFERENCES users(id)
    )`,
   `CREATE INDEX IF NOT EXISTS idx_sessions_user ON auth_sessions(user_id)`,
+  `CREATE TABLE IF NOT EXISTS auth_attempts (key_hash TEXT NOT NULL, at INTEGER NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS idx_attempts_key ON auth_attempts(key_hash, at)`,
   `CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
 ];
