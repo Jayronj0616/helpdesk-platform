@@ -11,6 +11,7 @@ const LINKS = [
 ];
 
 export function Nav({ user }: { user: User | null }) {
+  const links = user?.role === "manager" ? [...LINKS, { href: "/admin/users", label: "Users" }] : LINKS;
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
@@ -18,12 +19,12 @@ export function Nav({ user }: { user: User | null }) {
         {user && (
           <>
             <nav className="flex flex-wrap gap-4 text-sm text-slate-600">
-              {LINKS.map((l) => (
+              {links.map((l) => (
                 <Link key={l.href} href={l.href} className="hover:text-indigo-700">{l.label}</Link>
               ))}
             </nav>
             <form action={logout} className="ml-auto flex items-center gap-3 text-sm">
-              <span className="text-slate-600">{user.name} <span className="text-slate-400">({user.role})</span></span>
+              <Link href="/account" className="text-slate-600 hover:text-indigo-700">{user.name} <span className="text-slate-400">({user.role})</span></Link>
               <button className="rounded border border-slate-300 bg-white px-3 py-1 hover:bg-slate-50">Sign out</button>
             </form>
           </>
