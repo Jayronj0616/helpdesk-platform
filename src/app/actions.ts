@@ -12,6 +12,7 @@ import { label } from "@/components/ui";
 import { createAsset, requestTypes, updateAsset, updateProfile } from "@/lib/dataverse/admin";
 import type { FormState } from "@/lib/form-state";
 import { rateTicket } from "@/lib/dataverse/feedback";
+import { reopenTicket } from "@/lib/dataverse/lifecycle";
 
 export async function createTicket(formData: FormData) {
   const user = await requireUser();
@@ -196,4 +197,14 @@ export async function rateTicketAction(_prev: FormState, formData: FormData): Pr
   if (!result.ok) return { error: result.error, values };
   revalidatePath("/", "layout"); // the dashboard average changes too
   return { message: "Thank you for your feedback." };
+}
+
+export async function reopenTicketAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const ticketId = String(formData.get("ticketId") ?? "");
+  const values = { reason: String(formData.get("reason") ?? "") };
+  const result = await mutate((db) => reopenTicket(db, user.id, ticketId, values.reason));
+  if (!result.ok) return { error: result.error, values };
+  revalidatePath("/", "layout");
+  return { message: "Ticket reopened." };
 }
