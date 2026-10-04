@@ -2,7 +2,8 @@ import { PRIORITIES, TICKET_STATUSES, type Database, type Priority, type Ticket,
 
 export const isOpen = (t: Ticket) => t.status === "new" || t.status === "in_progress" || t.status === "waiting";
 
-export const isOverdue = (t: Ticket) => isOpen(t) && new Date(t.dueAt).getTime() < Date.now();
+// A ticket that is Waiting (on the customer) has its SLA clock paused, so it cannot be overdue.
+export const isOverdue = (t: Ticket, now = Date.now()) => isOpen(t) && t.status !== "waiting" && new Date(t.dueAt).getTime() < now;
 
 export interface TicketFilters {
   q?: string;
