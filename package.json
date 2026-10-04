@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "screenshots": "playwright test -c playwright.screenshots.config.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
