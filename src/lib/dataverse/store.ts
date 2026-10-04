@@ -83,10 +83,11 @@ export function diffStatements(db: Database, before: Record<string, Snapshot>, n
     }
     for (const id of old.keys()) {
       if (seen.has(id)) continue;
-      // unshift reverses the order, so this runs: sessions, credentials, then the user row.
+      // unshift reverses the order, so this runs: sessions, reset tokens, credentials, then the user row.
       deletes.unshift({ sql: `DELETE FROM ${spec.sql} WHERE id = ?`, args: [id] });
       if (spec.sql === "users") {
         deletes.unshift({ sql: "DELETE FROM auth_credentials WHERE user_id = ?", args: [id] });
+        deletes.unshift({ sql: "DELETE FROM auth_reset_tokens WHERE user_id = ?", args: [id] });
         deletes.unshift({ sql: "DELETE FROM auth_sessions WHERE user_id = ?", args: [id] });
       }
     }
