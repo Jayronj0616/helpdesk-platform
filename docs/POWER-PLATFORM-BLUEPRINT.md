@@ -16,7 +16,7 @@ Create these in the solution (New > Table). Use the display names below; Dataver
 | Table | Key columns | Notes |
 |---|---|---|
 | **Category** | Name (text) | Reference data |
-| **Ticket** | Number (autonumber, prefix `TKT-`), Title (text), Description (multiline), Priority (choice: Low, Medium, High, Critical), Status (choice: New, In progress, Waiting, Resolved, Closed), Category (lookup), Requester (lookup to User), Assignee (lookup to User), Related Asset (lookup), Due At (date and time), Resolved On (date and time), Escalated (yes/no), Rating (whole number 1 to 5, set a minimum and maximum), Rating Comment (multiline), Rated On (date and time) | The main table |
+| **Ticket** | Number (autonumber, prefix `TKT-`), Title (text), Description (multiline), Priority (choice: Low, Medium, High, Critical), Status (choice: New, In progress, Waiting, Resolved, Closed), Category (lookup), Requester (lookup to User), Assignee (lookup to User), Related Asset (lookup), Due At (date and time), Resolved On (date and time), Escalated (yes/no), Rating (whole number 1 to 5, set a minimum and maximum), Rating Comment (multiline), Rated On (date and time), Waiting Since (date and time) | The main table |
 | **Ticket Comment** | Ticket (lookup, required), Body (multiline), Author (lookup to User, empty for system entries), Kind (choice: Comment, System), Internal (yes/no) | Activity thread and audit trail. Alternatively use the built-in **Notes** (Annotations) or **Posts** feature for public comments; keep this table when you need the Internal flag. |
 | **Asset** | Tag (text, unique), Name (text), Type (choice), Status (choice: Available, Assigned, Repair, Retired), Assigned To (lookup to User), Purchased On (date) | Inventory |
 | **Asset Request** | Asset Type (choice), Justification (multiline), Requester (lookup), Status (choice: Pending, Approved, Rejected), Decided By (lookup), Decided On (date and time) | Drives the approval flow |
@@ -101,6 +101,9 @@ Create these in the solution (New > Automation > Cloud flow).
      - **Reject**: update the request Status to Rejected and *Send an email*.
 
 **Audit trail:** in Flows 1 and 2, add a *Add a new row* action on Ticket Comment (Kind = System, Internal = No) describing what the flow did. This is what the "Activity" thread shows on each ticket.
+
+### SLA pause while waiting
+In Dataverse this is usually done with an **SLA** record (Customer Service) that supports *Pause* on a status, or by hand: when Status changes to Waiting, a flow (or a business rule) stamps **Waiting Since**; when it changes back, a flow adds the elapsed time to **Due At** and clears Waiting Since. The Escalation flow's filter then needs `Status ne Waiting`. Interview point: the common mistake is only pausing the displayed timer and forgetting to exclude paused rows from the escalation query.
 
 ### Flow 4: "When a ticket is reopened" (Automated cloud flow)
 - **Trigger**: Dataverse, *When a row is added, modified or deleted* (Ticket, change type *Modified*, **filter columns** = Status).

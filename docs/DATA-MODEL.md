@@ -8,7 +8,7 @@ Source of truth is `src/lib/dataverse/types.ts`. This doc explains the meaning a
 |---|---|---|
 | `users` | id, name, email, role (`employee`/`agent`/`manager`), department, active | Demo users u1..u5 are seeded; self-registered users get generated ids and are always employees. Role drives permissions. Email is unique. `active=false` accounts cannot sign in (same answer as a wrong password), lose their sessions at once, and are never offered as assignees; their name stays on past tickets and comments. |
 | `categories` | id, name | Reference data |
-| `tickets` | id, number (autoincrement from `nextTicketNumber`), title, description, requesterId, assigneeId?, categoryId, priority, status, assetId?, createdAt, updatedAt, dueAt, resolvedAt?, escalated, rating? (1 to 5, database CHECK), ratingComment?, ratedAt? | `dueAt` is set by the "ticket created" flow from SLA hours |
+| `tickets` | id, number (autoincrement from `nextTicketNumber`), title, description, requesterId, assigneeId?, categoryId, priority, status, assetId?, createdAt, updatedAt, dueAt, resolvedAt?, escalated, rating? (1 to 5, database CHECK), ratingComment?, ratedAt?, waitingSince? (set while Waiting, the SLA clock is paused from then) | `dueAt` is set by the "ticket created" flow from SLA hours |
 | `comments` | id, ticketId, authorId? (null for system), body, kind (`comment`/`system`), internal, createdAt | `system` = audit trail written by actions and flows. `internal` = staff-only note. |
 | `assets` | id, tag, name, type, status (`available`/`assigned`/`repair`/`retired`), assignedToId?, purchasedAt | |
 | `assetRequests` | id, assetType, justification, requesterId, status (`pending`/`approved`/`rejected`), decidedById?, decidedAt?, createdAt | Decision triggers a flow |
@@ -19,7 +19,7 @@ Relations: ticket -> user (requester, assignee), category, asset; comment -> tic
 ## Enumerations
 - Priority: `low` < `medium` < `high` < `critical`. SLA hours: critical 4, high 8, medium 24, low 72 (`SLA_HOURS`).
 - Ticket status: `new`, `in_progress`, `waiting`, `resolved`, `closed`. "Open" means new, in_progress or waiting (`isOpen`).
-- Overdue = open and `dueAt` in the past (`isOverdue`).
+- Overdue = open, not Waiting, and `dueAt` in the past (`isOverdue`). Waiting pauses the SLA clock.
 
 ## Visibility rules (row-level security)
 - **Employee**: sees only tickets where `requesterId` is them; opening another ticket returns 404. Sees all non-internal comments and system entries on their own tickets.
@@ -48,7 +48,7 @@ Deleting a user (only `resetDb` does) also deletes their credentials and session
 | `auth_attempts` | key_hash, at | Sign-in, register and password-change attempts for rate limiting. The key is a SHA-256 of IP and email, never the plain values. Rows older than the window are deleted on each attempt. |
 
 ## Schema versions
-`meta.schema_version` records the schema version. Version 1 is the schema before migrations existed, and a database that has users but no version is treated as version 1. `migrations.ts` lists the changes: v2 added `users.active`; v3 added the ticket rating columns (`rating` with a `CHECK (rating BETWEEN 1 AND 5)`, `rating_comment`, `rated_at`). On connect, a database with no `users` table is created from `schema.ts` and stamped with the latest version; an older one has the pending migrations applied, each in one batch together with its version bump, so a crash cannot leave it half migrated, and two instances starting together are safe.
+`meta.schema_version` records the schema version. Version 1 is the schema before migrations existed, and a database that has users but no version is treated as version 1. `migrations.ts` lists the changes: v2 added `users.active`; v4 added `tickets.waiting_since` (existing Waiting tickets are paused from their last update); v3 added the ticket rating columns (`rating` with a `CHECK (rating BETWEEN 1 AND 5)`, `rating_comment`, `rated_at`). On connect, a database with no `users` table is created from `schema.ts` and stamped with the latest version; an older one has the pending migrations applied, each in one batch together with its version bump, so a crash cannot leave it half migrated, and two instances starting together are safe.
 
 ## Reads
 `readDb()` loads everything. `readDb(["users", "tickets"])` loads only those tables in one round trip, and its return type contains only them, so a page cannot quietly use a table it did not request. `readComments(ticketId)` is a single indexed query for one ticket's comments (including internal notes: the caller must pass them through `filterVisible`). `mutate()` always loads everything, because it needs the full picture to work out what changed. Indexes (`INDEX_SQL` in `schema.ts`) cover comments by ticket, tickets by requester, assignee and status, and requests by requester; they are created on every connect with `IF NOT EXISTS`, so existing databases get them without a migration.

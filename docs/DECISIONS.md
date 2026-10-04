@@ -77,5 +77,8 @@ Every request used to load every table, including every comment and flow run, to
 ## 25. Reopen: resolved only, within a week, with a reason
 Closed is final by design (staff close on purpose), and a resolution from last month is a different problem that deserves a new ticket, so only a recently resolved ticket can be reopened, and the requester has to say what is still wrong, which becomes the first thing the assignee reads. The SLA clock restarts because the customer's wait restarted, and the ticket goes back to its assignee only if that person is still active staff, otherwise to the queue where a manager is told. A rating given before stays, so one resolution cannot be rated twice.
 
-## 26. Small commits
+## 26. Waiting on the customer pauses the SLA
+A ticket parked on the customer was being escalated for a delay that was not the team's fault. Entering Waiting now records `waitingSince`, and leaving it pushes the due date back by exactly the time waited, so a due date still means "when the team has to act" and nothing is double counted. A Waiting ticket cannot be overdue, so it is never escalated. Migration 4 starts existing Waiting tickets' pause at their last update, the best the old data allows.
+
+## 27. Small commits
 The owner wants one logical change per commit (it also reads well in history and helps their GitHub contribution graph).
