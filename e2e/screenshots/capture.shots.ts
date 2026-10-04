@@ -48,7 +48,12 @@ test("capture the README screenshots", async ({ page }) => {
   await expect(page.getByText("Approved", { exact: true })).toBeVisible();
   await page.goto("/flows");
   await page.getByRole("button", { name: /Escalate overdue/ }).click();
-  await expect(page.getByText("breached SLA")).toBeVisible();
+  await expect(page.getByText("priority high -> critical, flagged as escalated")).toBeVisible();
+  // Emails are sent just after the response, so wait until the queue has drained before taking the picture.
+  await expect(async () => {
+    await page.reload();
+    await expect(page.getByText("0 waiting")).toBeVisible();
+  }).toPass({ timeout: 15_000 });
   await shot(page, "flows");
   await logout(page);
 
