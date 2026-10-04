@@ -32,7 +32,7 @@ export default async function Requests() {
                 <div className="text-sm">
                   <p className="font-medium">{r.assetType} for {name(r.requesterId)}</p>
                   <p className="text-slate-600">{r.justification}</p>
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-slate-500">
                     Requested {fmt(r.createdAt)}{r.decidedById && ` · decided by ${name(r.decidedById)}`}
                   </p>
                 </div>
@@ -47,7 +47,7 @@ export default async function Requests() {
               )}
             </Card>
           ))}
-          {!requests.length && <p className="text-sm text-slate-400">No requests yet.</p>}
+          {!requests.length && <p className="text-sm text-slate-500">No requests yet.</p>}
         </div>
       </div>
     </>

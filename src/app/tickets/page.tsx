@@ -123,7 +123,7 @@ export default async function Tickets({ searchParams }: PageProps<"/tickets">) {
                 </tr>
               );
             })}
-            {!tickets.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">No tickets found</td></tr>}
+            {!tickets.length && <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-500">No tickets found</td></tr>}
           </tbody>
         </table>
       </div>

@@ -65,7 +65,7 @@ export default async function TicketDetail({ params }: PageProps<"/tickets/[id]"
             <div className="space-y-2 text-sm">
               <Badge tone={statusTone[t.status]}>{label(t.status)}</Badge>
               <p>Assigned to {name(t.assigneeId)}</p>
-              <p className="text-slate-400">Only IT staff can edit tickets.</p>
+              <p className="text-slate-500">Only IT staff can edit tickets.</p>
             </div>
           )}
         </Card>
@@ -89,7 +89,7 @@ export default async function TicketDetail({ params }: PageProps<"/tickets/[id]"
               </li>
             ),
           )}
-          {!thread.length && <li className="text-sm text-slate-400">No activity yet.</li>}
+          {!thread.length && <li className="text-sm text-slate-500">No activity yet.</li>}
         </ol>
         <form action={addTicketComment} className="space-y-2">
           <input type="hidden" name="ticketId" value={t.id} />

@@ -53,7 +53,7 @@ export default async function Assets() {
                 )}
               </tr>
             ))}
-            {!db.assets.length && <tr><td colSpan={headers.length} className="px-4 py-6 text-center text-slate-400">No assets yet</td></tr>}
+            {!db.assets.length && <tr><td colSpan={headers.length} className="px-4 py-6 text-center text-slate-500">No assets yet</td></tr>}
           </tbody>
         </table>
       </div>

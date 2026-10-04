@@ -74,7 +74,7 @@ function Bars({ title, data }: { title: string; data: Record<string, number> }) 
             <div className="h-2 rounded bg-slate-100"><div className="h-2 rounded bg-indigo-500" style={{ width: `${(v / max) * 100}%` }} /></div>
           </li>
         ))}
-        {!Object.keys(data).length && <li className="text-sm text-slate-400">No data</li>}
+        {!Object.keys(data).length && <li className="text-sm text-slate-500">No data</li>}
       </ul>
     </Card>
   );

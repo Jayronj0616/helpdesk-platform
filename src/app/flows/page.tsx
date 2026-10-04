@@ -28,7 +28,7 @@ export default async function Flows() {
           <Card key={r.id}>
             <div className="flex justify-between text-sm">
               <p className="font-medium">{r.flow}</p>
-              <p className="text-slate-400">{fmt(r.at)}</p>
+              <p className="text-slate-500">{fmt(r.at)}</p>
             </div>
             <p className="mb-2 text-xs text-slate-500">Trigger: {r.trigger}</p>
             <ul className="list-inside list-disc text-sm text-slate-700">
@@ -36,7 +36,7 @@ export default async function Flows() {
             </ul>
           </Card>
         ))}
-        {!db.flowRuns.length && <p className="text-sm text-slate-400">No runs yet. Create a ticket or run a flow.</p>}
+        {!db.flowRuns.length && <p className="text-sm text-slate-500">No runs yet. Create a ticket or run a flow.</p>}
       </div>
     </>
   );

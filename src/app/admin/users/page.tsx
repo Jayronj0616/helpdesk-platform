@@ -28,7 +28,7 @@ export default async function AdminUsers() {
                   <div className="text-sm">
                     <p className="font-medium">{u.name} {self && <Badge tone="purple">You</Badge>} {!u.active && <Badge tone="red">Deactivated</Badge>}</p>
                     <p className="text-slate-500">{u.email} · {u.department}</p>
-                    {u.role !== "employee" && <p className="text-xs text-slate-400">{openText(u.id)}</p>}
+                    {u.role !== "employee" && <p className="text-xs text-slate-500">{openText(u.id)}</p>}
                   </div>
                   <form action={setUserRoleAction} className="flex items-center gap-2">
                     <input type="hidden" name="userId" value={u.id} />
