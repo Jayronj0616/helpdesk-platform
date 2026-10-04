@@ -98,6 +98,16 @@ export const TABLES: TableSpec[] = [
   },
 ];
 
+// Indexes for the lookups pages make. CREATE INDEX IF NOT EXISTS is safe to run on every connect, so
+// existing databases get them without a migration.
+export const INDEX_SQL = [
+  "CREATE INDEX IF NOT EXISTS idx_comments_ticket ON comments(ticket_id, created_at)",
+  "CREATE INDEX IF NOT EXISTS idx_tickets_requester ON tickets(requester_id)",
+  "CREATE INDEX IF NOT EXISTS idx_tickets_assignee ON tickets(assignee_id)",
+  "CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status)",
+  "CREATE INDEX IF NOT EXISTS idx_requests_requester ON asset_requests(requester_id)",
+];
+
 export const snake = (s: string) => s.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
 
 const SQL_TYPE: Record<ColumnKind, string> = { text: "TEXT", int: "INTEGER", bool: "INTEGER", json: "TEXT" };

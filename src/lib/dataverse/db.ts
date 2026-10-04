@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
-import { AUTH_SQL, TABLES, createTableSql } from "./schema";
+import { AUTH_SQL, INDEX_SQL, TABLES, createTableSql } from "./schema";
 import { runMigrations } from "./migrations";
 
 // One client per server process. DATABASE_URL accepts a local file (file:data/helpdesk.db) or a
@@ -24,6 +24,8 @@ export function getDb(): Promise<Client> {
     const fresh = (await client.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'users'")).rows.length === 0;
     await client.batch([...TABLES.map(createTableSql), ...AUTH_SQL], "write");
     await runMigrations(client, fresh);
+    // After migrations, because an index can name a column a migration adds.
+    await client.batch(INDEX_SQL, "write");
     return client;
   })().catch((err) => {
     ready = undefined; // a failed connect (for example a network blip on a cold start) is retried next request
