@@ -1,6 +1,20 @@
 import { expect, test } from "@playwright/test";
 import { PASSWORD, USERS, login, loginAs, logout } from "./helpers";
 
+test("you can edit your name and department, but not your email or role", async ({ page }) => {
+  await loginAs(page, USERS.carlo);
+  await page.goto("/account");
+  await expect(page.getByText("Email (your sign-in, not editable)")).toBeVisible();
+  await expect(page.getByLabel("Email")).toHaveCount(0);
+  await expect(page.getByLabel("Role")).toHaveCount(0);
+
+  await page.getByLabel("Full name").fill("Carlo M. Reyes");
+  await page.getByLabel("Department").fill("Field Sales");
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Profile saved." })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Carlo M. Reyes/ })).toBeVisible(); // the nav shows the new name
+});
+
 test("changing your own password needs the current one, and kills the old password", async ({ page }) => {
   await loginAs(page, USERS.maria);
   await page.goto("/account");
