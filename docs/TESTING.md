@@ -16,6 +16,9 @@ Most logic is pure functions over a `Database`, so those tests build a fresh `se
 | `tests/comments.test.ts` | `visibleComments` (internal notes hidden from employees, ordering), `addComment`, `addSystemEntry` |
 | `tests/flows.test.ts` | `onTicketCreated`, `escalateOverdue`, `onAssetRequestDecided` |
 | `tests/password.test.ts` | scrypt hash and verify (random salt, tamper and malformed rejection), login rate limiter |
+| `tests/admin.test.ts` | `changeUserRole` (promote, self-change blocked, non-manager blocked, demotion unassigns open tickets with audit), `createAsset`, `updateAsset`, `requestTypes` |
+| `tests/accounts.test.ts` | `createAccount` with a role, `registerUser` stays employee-only, `setPassword` (signs the user out, leaves others signed in), `changeOwnPassword` (current password required, keeps only the current session) |
+| `tests/production-seed.test.ts`, `tests/production-missing-admin.test.ts` | `DEMO_MODE=0` first run: one manager, categories, no demo data, admin signs in; and a loud, retryable failure when `ADMIN_EMAIL` or `ADMIN_PASSWORD` is missing |
 | `tests/db.test.ts` | Seeding, type round-trips, `mutate` persistence, rollback on error, concurrent writes keep ticket numbers unique, newest-first ordering, no-op diff, foreign keys, `authenticate`, registration (employee only, duplicates, bad input), sessions (create, expire, destroy, token stored hashed), `resetDb` (removes registered users with their credentials and sessions) |
 
 Tests depend on the relative dates in `src/lib/dataverse/seed.ts`. If you change the seed, re-run the tests and adjust expectations (for example ticket 1001 is the only overdue open ticket).
@@ -44,9 +47,12 @@ Demo accounts: maria@contoso.test and carlo@contoso.test (employees), ana@contos
 6. As Dina: click "Run Escalate overdue tickets", then confirm ticket 1001 is escalated.
 7. Register a new account on `/register`: it lands on a dashboard scoped to employee data. As Dina: "Reset demo data" removes that account and restores the seed, and Dina stays signed in.
 8. Sign out, then confirm the back button and `/tickets` both lead to `/login`.
+9. As Maria: `/admin/users` is a 404 and there is no Users link or Add asset form. On `/account`, a wrong current password is rejected, a correct change signs other devices out, and the old password no longer works.
+10. As Dina on `/admin/users`: create an agent (appears in ticket assignee lists), demote Ana to employee (her 2 open tickets become unassigned with an audit entry), reset Carlo's password (confirmation says he was signed out). Your own role selector is disabled.
+11. As Dina on `/assets`: add an asset (a duplicate tag is rejected and the form keeps your input; the tag is uppercased and the type spelling reused), then change an asset's status.
 
 ## Last manual verification
-The pre-auth flows (ticket creation, comments, approval, escalation, reset, pagination) were run in a real browser on 2026-10-03. With real authentication and SQLite, on 2026-10-04: wrong password (generic error, email kept), sign in, HttpOnly session cookie, sign out, signed-out redirects, forged cookie rejected, registration, ticket creation with flow assignment, manager approve, escalation and reset (registered user removed, manager session kept).
+The pre-auth flows (ticket creation, comments, approval, escalation, reset, pagination) were run in a real browser on 2026-10-03. With real authentication and SQLite, on 2026-10-04 (and the admin features, password change and asset management later the same day): wrong password (generic error, email kept), sign in, HttpOnly session cookie, sign out, signed-out redirects, forged cookie rejected, registration, ticket creation with flow assignment, manager approve, escalation and reset (registered user removed, manager session kept).
 
 ## Not covered yet
 Server actions and pages have no automated tests. A Playwright suite for the manual script is the natural next step.
