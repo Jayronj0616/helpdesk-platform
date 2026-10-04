@@ -10,6 +10,7 @@ Start here. Each doc answers one question, so read only what the task needs.
 | [DATA-MODEL.md](DATA-MODEL.md) | What are the tables, fields and visibility rules? | Touching data, types or permissions |
 | [FEATURES.md](FEATURES.md) | What does each page do and who can do what? | Changing a page or a role rule |
 | [FLOWS.md](FLOWS.md) | What do the automations do and when do they run? | Touching `src/lib/flows` |
+| [DEPLOY.md](DEPLOY.md) | How do I deploy to Vercel with a hosted database? | Deploying, changing environment variables |
 | [TESTING.md](TESTING.md) | How do I verify a change works? | Before every commit |
 | [DECISIONS.md](DECISIONS.md) | Why was it built this way? | Before changing an approach |
 | [POWER-PLATFORM-BLUEPRINT.md](POWER-PLATFORM-BLUEPRINT.md) | How is this built in real Power Platform? | Updating the blueprint, interview prep |

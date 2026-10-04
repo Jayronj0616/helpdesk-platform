@@ -15,19 +15,23 @@ src/
     layout.tsx            Shell: nav (shown only when signed in)
     page.tsx              Dashboard (Power BI analog)
     actions.ts            ALL data mutations (server actions). Auth and role checks live here.
-    auth-actions.ts       login, register, logout (rate limited, generic errors)
+    auth-actions.ts       login, register, logout, change own password (rate limited, generic errors)
+    admin-actions.ts      Manager-only: create user, change role, reset a user's password
     login/page.tsx        Sign in, plus demo account hints when DEMO_MODE is on
     register/page.tsx     Self-registration (always creates an employee)
+    account/page.tsx      Own profile and password change
+    admin/users/page.tsx  User administration (managers only, 404 for everyone else)
     tickets/
       page.tsx            Ticket list with search, filters, sorting, pagination
       new/page.tsx        Submit ticket form (canvas app analog)
       [id]/page.tsx       Ticket detail, status/assignee/asset edit, comment thread
-    assets/page.tsx       Asset register
+    assets/page.tsx       Asset register; staff can add assets and change status and holder
     requests/page.tsx     Asset request approval workflow
     flows/page.tsx        Flow run history, manual flow triggers
   components/
     Nav.tsx               Top nav with the signed-in user and Sign out
     AuthForms.tsx         Client components: LoginForm, RegisterForm (useActionState)
+    ActionForms.tsx       Client forms: CreateUserForm, ResetPasswordForm, AddAssetForm, ChangePasswordForm
     ui.tsx                Badge, Card, PageTitle, class constants, label(), fmt()
   lib/
     dataverse/
@@ -37,17 +41,20 @@ src/
       store.ts            readDb, mutate (write transaction, diff write-back), resetDb, newId, first-run seed
       seed.ts             Demo data
       queries.ts          Pure helpers over rows (isOpen, isOverdue, filterTickets, paginate, ticketsPerDay)
+      admin.ts            Pure rules: changeUserRole, createAsset, updateAsset, requestTypes
       comments.ts         addComment, addSystemEntry (audit trail), visibleComments (hides internal notes)
     auth/
       password.ts         scrypt hash and verify
-      credentials.ts      authenticate, registerUser
-      sessions.ts         createSession, getSessionUser, destroySession (hashed tokens in SQL)
+      credentials.ts      authenticate, createAccount (any role, admin only), registerUser (employee), setPassword, changeOwnPassword
+      sessions.ts         createSession, getSessionUser, destroySession, destroyUserSessions (hashed tokens in SQL)
       rate-limit.ts       In-memory sliding-window limiter for login and register
     flows/index.ts        Automation flows (Power Automate analog). Each logs a FlowRun.
-    session.ts            currentUser, requireUser, startSession/endSession (cookie), role checks, DEMO_MODE
-tests/                    Vitest: queries, comments, flows (pure), password + rate limit, db (real SQLite file)
+    session.ts            currentUser, requireUser, startSession/endSession (cookie), role checks
+    config.ts             DEMO_MODE, DEMO_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD (from env)
+    form-state.ts         FormState type for useActionState actions
+tests/                    Vitest: queries, comments, flows, admin rules (pure); password, db, accounts, production seed (real SQLite files)
 vitest.config.mts         Test config (resolves the @ alias)
-.env.example              DATABASE_URL, DATABASE_AUTH_TOKEN, DEMO_MODE, DEMO_PASSWORD
+.env.example              DATABASE_URL, DATABASE_AUTH_TOKEN, DEMO_MODE, DEMO_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD
 docs/
   INDEX.md                Which doc answers which question
   HANDOFF.md              Current state and next step. Rewrite every session.
@@ -58,6 +65,7 @@ docs/
   FLOWS.md                Automation flows
   TESTING.md              Checks and manual test script
   DECISIONS.md            Why it is built this way
+  DEPLOY.md               Vercel + Turso deployment, modes, caveats
   POWER-PLATFORM-BLUEPRINT.md   Guide to rebuilding this in the real Power Platform
 AGENTS.md, CLAUDE.md      Auto-loaded by AI tools; point at docs/
 data/helpdesk.db          Local SQLite database, gitignored, created and seeded on first use
