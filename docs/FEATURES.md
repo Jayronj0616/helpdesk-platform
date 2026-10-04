@@ -12,6 +12,9 @@ Every route, what it does, and who can do what. Role checks live in `src/app/act
 | `/tickets/[id]` status, assignee and related-asset form | `updateTicket`, which writes audit entries for each changed field. Unknown asset ids are ignored, and the assignee must be an agent or manager. | no | yes | yes |
 | Comment form | `addTicketComment`; max 2000 chars | own tickets, never internal | any ticket, can mark internal | same as agent |
 | `/assets` | Asset register. Staff can add an asset (`createAssetAction`: unique uppercase tag, type spelling reused) and change status and holder (`updateAssetAction`: only `assigned` assets have a holder). | read only | add and edit | add and edit |
+| `/forgot-password`, `/reset-password/[token]` | Password reset by emailed link (see Authentication). 404 when email is not configured in production. | yes | yes | yes |
+| `/dev/outbox` | Development mail catcher: emails the app would have sent. 404 in production and whenever a provider is configured. | dev only | dev only | dev only |
+| `/api/health` | Public JSON `{status}`: 200 when the database is reachable, migrated and seeded, otherwise a bare 503 (no details) | yes | yes | yes |
 | `/account` | Own profile and change password (needs the current password; signs out other devices) | yes | yes | yes |
 | `/admin/users` | List users, create a user with any role, change a role, reset a password, deactivate or reactivate an account. 404 for non-managers. | no | no | yes |
 | `/requests` | Submit an asset request; list | own | all (read) | all, approve or reject |
@@ -28,10 +31,14 @@ Every route, what it does, and who can do what. Role checks live in `src/app/act
 - **Deactivating** an account (never deleting) removes their sessions at once, unassigns their open tickets with an audit entry, and stops them signing in or being offered as an assignee or flow target. Managers cannot deactivate themselves. Reactivating restores sign-in with the same password.
 - The role check uses the role stored in the database, not anything sent by the browser, and takes effect immediately.
 
+## Security headers
+Every response sends `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (camera, microphone, geolocation, payment off), `Strict-Transport-Security`, and a partial `Content-Security-Policy` (`frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'`), and drops `X-Powered-By`. A script-restricting CSP needs per-request nonces with Next.js and is not set.
+
 ## Authentication
 Email and password. `/login` signs in, `/register` creates an **employee** account (self-service never creates agents or managers; those exist only in the seed or are inserted by an administrator in the database). A session is a random token in an HttpOnly, SameSite=Lax cookie (`Secure` in production); only its SHA-256 is stored, with a 7-day expiry. Every page and server action calls `requireUser()`, which redirects signed-out visitors to `/login`.
 
 - Passwords: minimum 8 characters, hashed with scrypt.
+- **Password reset by email:** `/forgot-password` always answers "If an account exists for that email, we have sent a link" and does the work after the response (`after()`), so neither the message nor the timing reveals who has an account. Deactivated accounts get no email. The link holds a random token (stored only as a hash), works once, and expires after 60 minutes; asking again replaces the earlier link, and any other password change cancels it. Using it signs the user out everywhere. Limits: 5 requests per IP and 5 per address per 15 minutes (the address limit trips silently). The link is built from `APP_URL`, never from the request Host header in production. The feature only exists when it can actually deliver: a provider (`RESEND_API_KEY` and `MAIL_FROM`) plus `APP_URL` in production, or development mode, where mail goes to `/dev/outbox`.
 - Login, register and password change are rate limited: 5 attempts per 15 minutes per IP and email (per user for password change). The counters live in the database, so the limit holds across serverless instances, and only hashed keys are stored.
 - Wrong email and wrong password give the same message, and unknown emails still cost a hash, so accounts cannot be enumerated by response or timing.
 - **Demo mode** (default on, `DEMO_MODE=0` turns it off): the first run seeds demo users and sample data, the login page lists the demo accounts and their shared password, and managers get a "Reset demo data" button on `/flows`. Reset restores the seed data **and the demo accounts' passwords and active status**, so a visitor who changes a demo password cannot lock others out. With `DEMO_MODE=0` the first run creates only the categories and one manager from `ADMIN_EMAIL` and `ADMIN_PASSWORD` (see DEPLOY.md). Turn demo mode off, and change `DEMO_PASSWORD`, for anything that is not a public demo.

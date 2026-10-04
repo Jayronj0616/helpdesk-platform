@@ -43,6 +43,8 @@ Kept out of the `Database` object on purpose, so hashes and tokens never reach a
 
 Deleting a user (only `resetDb` does) also deletes their credentials and sessions. Everyone else is deactivated, never deleted.
 
+| `auth_reset_tokens` | token_hash, user_id, expires_at | SHA-256 of the emailed reset token, 60-minute expiry, deleted when used, replaced by a newer request, or cancelled by any password change |
+| `dev_outbox` | id, at, to_addr, subject, body | Only written in development when no email provider is set (see `lib/mail.ts`); shown on `/dev/outbox` |
 | `auth_attempts` | key_hash, at | Sign-in, register and password-change attempts for rate limiting. The key is a SHA-256 of IP and email, never the plain values. Rows older than the window are deleted on each attempt. |
 
 ## Schema versions
