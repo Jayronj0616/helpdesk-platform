@@ -11,12 +11,21 @@ Every route, what it does, and who can do what. Role checks live in `src/app/act
 | `/tickets/[id]` | Details, activity thread, comment form | own only (404 otherwise) | all | all |
 | `/tickets/[id]` status, assignee and related-asset form | `updateTicket`, which writes audit entries for each changed field. Unknown asset ids are ignored, and the assignee must be an agent or manager. | no | yes | yes |
 | Comment form | `addTicketComment`; max 2000 chars | own tickets, never internal | any ticket, can mark internal | same as agent |
-| `/assets` | Asset register (read-only) | yes | yes | yes |
+| `/assets` | Asset register. Staff can add an asset (`createAssetAction`: unique uppercase tag, type spelling reused) and change status and holder (`updateAssetAction`: only `assigned` assets have a holder). | read only | add and edit | add and edit |
+| `/account` | Own profile and change password (needs the current password; signs out other devices) | yes | yes | yes |
+| `/admin/users` | List users, create a user with any role, change a role, reset a password. 404 for non-managers. | no | no | yes |
 | `/requests` | Submit an asset request; list | own | all (read) | all, approve or reject |
 | `/flows` | Flow run history | read | read | read, run escalation, reset demo data (demo mode only) |
 
 ## Server actions (`src/app/actions.ts`)
-`createTicket`, `updateTicket`, `addTicketComment`, `createAssetRequest`, `decideRequest`, `runEscalation`, `resetDemoData`. Each re-checks the role itself, never trusting the UI.
+`createTicket`, `updateTicket`, `addTicketComment`, `createAssetRequest`, `decideRequest`, `runEscalation`, `resetDemoData`, `createAssetAction`, `updateAssetAction`. Each re-checks the role itself, never trusting the UI.
+
+## Admin actions (`src/app/admin-actions.ts`, managers only)
+`createUserAction`, `setUserRoleAction`, `resetUserPasswordAction`. Rules:
+- A manager cannot change their own role (so the last manager cannot lock everyone out) and cannot reset their own password here (use Account).
+- Demoting an agent or manager to employee unassigns their open tickets, with an audit entry on each ticket. Resolved and closed tickets keep their history.
+- Resetting a password signs that user out everywhere.
+- The role check uses the role stored in the database, not anything sent by the browser, and takes effect immediately.
 
 ## Authentication
 Email and password. `/login` signs in, `/register` creates an **employee** account (self-service never creates agents or managers; those exist only in the seed or are inserted by an administrator in the database). A session is a random token in an HttpOnly, SameSite=Lax cookie (`Secure` in production); only its SHA-256 is stored, with a 7-day expiry. Every page and server action calls `requireUser()`, which redirects signed-out visitors to `/login`.
@@ -24,4 +33,5 @@ Email and password. `/login` signs in, `/register` creates an **employee** accou
 - Passwords: minimum 8 characters, hashed with scrypt.
 - Login and register are rate limited (5 attempts per 15 minutes per IP and email, in memory).
 - Wrong email and wrong password give the same message, and unknown emails still cost a hash, so accounts cannot be enumerated by response or timing.
-- **Demo mode** (default on, `DEMO_MODE=0` turns it off): the login page lists the demo accounts and their shared password, and managers get a "Reset demo data" button on `/flows`. Turn it off, and change `DEMO_PASSWORD`, for anything that is not a public demo.
+- **Demo mode** (default on, `DEMO_MODE=0` turns it off): the first run seeds demo users and sample data, the login page lists the demo accounts and their shared password, and managers get a "Reset demo data" button on `/flows`. With `DEMO_MODE=0` the first run creates only the categories and one manager from `ADMIN_EMAIL` and `ADMIN_PASSWORD` (see DEPLOY.md). Turn demo mode off, and change `DEMO_PASSWORD`, for anything that is not a public demo.
+- Request types offered on `/requests` are the defaults (Laptop, Monitor, Phone, Keyboard and mouse, Headset) plus any type in the asset register, so an empty register still works.
