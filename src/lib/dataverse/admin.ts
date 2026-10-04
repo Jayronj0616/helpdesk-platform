@@ -115,3 +115,19 @@ export function requestTypes(db: Pick<Database, "assets">): string[] {
   }
   return [...all.values()].sort((a, b) => a.localeCompare(b));
 }
+
+/**
+ * Updates your own display name and department. Email and role are not editable here: the email is the
+ * sign-in identity, and the role decides what you may do, so only a manager changes that.
+ */
+export function updateProfile(db: Database, userId: string, input: { name: string; department: string }): Result<{ name: string; department: string }> {
+  const user = db.users.find((u) => u.id === userId);
+  if (!user || !user.active) return { ok: false, error: "Account not found." };
+  const name = input.name.trim();
+  const department = input.department.trim() || "General";
+  if (!name || name.length > 80) return { ok: false, error: "Enter your name (up to 80 characters)." };
+  if (department.length > 60) return { ok: false, error: "Department can be up to 60 characters." };
+  user.name = name;
+  user.department = department;
+  return { ok: true, name, department };
+}
