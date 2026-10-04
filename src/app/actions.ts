@@ -9,7 +9,7 @@ import { canApprove, canWorkTickets, requireUser } from "@/lib/session";
 import { escalateOverdue, onAssetRequestDecided, onTicketCreated } from "@/lib/flows";
 import { addComment, addSystemEntry } from "@/lib/dataverse/comments";
 import { label } from "@/components/ui";
-import { createAsset, requestTypes, updateAsset } from "@/lib/dataverse/admin";
+import { createAsset, requestTypes, updateAsset, updateProfile } from "@/lib/dataverse/admin";
 import type { FormState } from "@/lib/form-state";
 
 const STATUSES: TicketStatus[] = ["new", "in_progress", "waiting", "resolved", "closed"];
@@ -174,4 +174,13 @@ export async function updateAssetAction(formData: FormData): Promise<void> {
     updateAsset(db, String(formData.get("id") ?? ""), String(formData.get("status") ?? ""), String(formData.get("assignedToId") ?? "")),
   );
   revalidatePath("/", "layout");
+}
+
+export async function updateProfileAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const user = await requireUser();
+  const values = { name: String(formData.get("name") ?? ""), department: String(formData.get("department") ?? "") };
+  const result = await mutate((db) => updateProfile(db, user.id, values));
+  if (!result.ok) return { error: result.error, values };
+  revalidatePath("/", "layout"); // the name is shown in the nav and on tickets
+  return { message: "Profile saved." };
 }
