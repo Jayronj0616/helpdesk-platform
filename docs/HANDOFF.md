@@ -9,14 +9,14 @@ An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power P
 - Everything in PROGRESS.md under "Done" works. Run `git status -sb` to see whether anything is unpushed.
 - Real auth and a real database are in (SQLite via `@libsql/client`; hosted Turso in production, because Vercel's disk is read-only and temporary).
 - Admin features are in: `/admin/users` (managers), `/account` (everyone), asset add and edit (staff), and a production first-run mode (`DEMO_MODE=0` plus `ADMIN_EMAIL` and `ADMIN_PASSWORD`).
-- Verified: 221 unit tests (`npm test`), 55 Playwright end-to-end tests (`npm run test:e2e`, real Chrome, includes axe accessibility checks), lint (including type-aware promise rules), types and build are clean. GitHub Actions runs all of it on every push and is green.
-- Also built: versioned schema migrations (3 so far), user deactivation, a database-backed rate limiter, a reset that restores demo passwords, password reset by email (Resend, or a dev outbox), security headers, `/api/health`, generated README screenshots, profile editing, manager-managed categories, CSV export with formula protection, customer satisfaction ratings, reopening resolved tickets (with a "reopened" flow), and scoped reads (`readDb([...tables])`, `readComments`, indexes).
+- Verified: 276 unit tests (`npm test`), 57 Playwright end-to-end tests (`npm run test:e2e`, real Chrome, includes axe accessibility checks), lint (including type-aware promise rules), types and build are clean. GitHub Actions runs all of it on every push and is green.
+- Also built (all pushed to `master`): versioned schema migrations (4 so far), user deactivation, a database-backed rate limiter, password reset by email, security headers, `/api/health`, generated README screenshots, profile editing, manager-managed categories, CSV export with formula protection, satisfaction ratings, reopening resolved tickets, scoped reads (`readDb([...tables])`), the SLA clock pausing while a ticket is Waiting, scheduled maintenance (auto-close plus a `CRON_SECRET`-protected cron endpoint and `vercel.json`), and **real flow emails through a transactional outbox** (queued in the flow's own transaction, delivered after the response with retries, queue visible to managers).
 - Production-build behaviour was checked by hand: without an email provider the reset pages and `/dev/outbox` are 404 and the login link is hidden.
 - **Not verified:** anything against a real Turso database (only a local libSQL file), and real email delivery through Resend (only unit tested with a mocked `fetch`).
 
 ## Next step
-1. **Deploy** (needs the owner): follow `docs/DEPLOY.md`. Afterwards open `/api/health`, fix the doc with whatever differed, and send yourself a password reset email to confirm Resend works.
-2. Then, if wanted: send the notification emails the flows only simulate today (reuse `sendMail`, ideally through a transactional outbox so a rollback never sends mail), an SLA pause while a ticket is Waiting, and targeted statements for the hot write paths if data grows past the low thousands of rows.
+1. **Deploy** (needs the owner): follow `docs/DEPLOY.md`. Set `DATABASE_URL`, `DATABASE_AUTH_TOKEN`, `APP_URL`, `RESEND_API_KEY`, `MAIL_FROM`, `CRON_SECRET` (and the demo or admin variables). Afterwards open `/api/health`, send yourself a password reset email, and check the first scheduled run and an email in the queue on **Flow runs**. Fix `DEPLOY.md` with anything that differs: Turso and Resend have never been run for real.
+2. Then, if wanted: a Microsoft Teams connection for the critical-ticket alert (still a simulated log line), notification preferences per user, and targeted write statements if data grows past the low thousands of rows.
 3. Branch note: the repository's only branch is `master`, and every task has been pushed there.
 
 ## Gotchas
@@ -37,6 +37,8 @@ An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power P
 - The e2e password-reset test reads the link from `/dev/outbox`; if you add another test that triggers email, remember mail is written after the response (`after()`), so poll instead of reading once.
 - Before testing a production build on a port, make sure nothing else is listening there. A leftover server answers instead and gives misleading results.
 - Regenerate screenshots (`npm run screenshots`) after visible UI changes and commit them.
+- Emails: flows call `queueMail(db, ...)` (inside `mutate`), never `sendMail`; actions call `deliverSoon()` after a flow runs. A new action that runs a flow must do the same, or its emails wait for the next send. Addresses on reserved domains (the demo accounts) are skipped when a real provider is configured, by design.
+- Cron and `after()` work happens after the response, so tests that check email poll (`toPass`) instead of reading once.
 - Windows: git prints CRLF warnings and may exit 255 on success. Check `git log`, not the exit code.
 - The user wants many small, single-purpose commits (they care about GitHub contributions).
 
