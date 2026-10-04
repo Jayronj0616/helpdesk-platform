@@ -37,6 +37,24 @@ test.describe("agent", () => {
     await expect(page.getByText("Ana Cruz changed assignee from Unassigned to Ben Lim")).toBeVisible();
   });
 
+  test("waiting pauses the SLA clock and resuming gives the time back", async ({ page }) => {
+    await page.goto("/tickets/t5");
+    // Put it in Waiting (it may already be, from the test above; saving the same status changes nothing)
+    await page.getByLabel("Status", { exact: true }).selectOption("waiting");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText("Paused while waiting for the customer", { exact: true })).toBeVisible();
+    await expect(page.getByText("SLA clock paused while waiting for the customer")).toBeVisible();
+
+    await page.goto("/tickets?q=printer");
+    await expect(page.getByRole("row").filter({ hasText: "Printer on 3rd floor offline" })).toContainText("Paused");
+
+    await page.goto("/tickets/t5");
+    await page.getByLabel("Status", { exact: true }).selectOption("in_progress");
+    await page.getByRole("button", { name: "Save" }).click();
+    await expect(page.getByText(/SLA clock resumed: due date moved .*h later for the time spent waiting/)).toBeVisible();
+    await expect(page.getByText("Paused while waiting for the customer", { exact: true })).toHaveCount(0);
+  });
+
   test("can add an asset, rejects a duplicate tag, and changes status", async ({ page }) => {
     await page.goto("/assets");
     await page.getByLabel("Asset tag").fill("e2e-001");
