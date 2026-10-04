@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAccount, setPassword } from "@/lib/auth/credentials";
-import { changeUserRole, setUserActive } from "@/lib/dataverse/admin";
+import { addCategory, changeUserRole, deleteCategory, renameCategory, setUserActive } from "@/lib/dataverse/admin";
 import { destroyUserSessions } from "@/lib/auth/sessions";
 import { mutate } from "@/lib/dataverse/store";
 import { ROLES, type Role } from "@/lib/dataverse/types";
@@ -60,4 +60,29 @@ export async function resetUserPasswordAction(_prev: FormState, formData: FormDa
   const result = await setPassword(userId, String(formData.get("password") ?? ""));
   if (!result.ok) return { error: result.error };
   return { message: "Password changed. The user was signed out everywhere." };
+}
+
+export async function addCategoryAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const actor = await requireManager();
+  const values = { name: String(formData.get("name") ?? "") };
+  const result = await mutate((db) => addCategory(db, actor.id, values.name));
+  if (!result.ok) return { error: result.error, values };
+  revalidatePath("/", "layout");
+  return { message: `Added ${result.category.name}.` };
+}
+
+export async function renameCategoryAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const actor = await requireManager();
+  const id = String(formData.get("id") ?? "");
+  const values = { name: String(formData.get("name") ?? "") };
+  const result = await mutate((db) => renameCategory(db, actor.id, id, values.name));
+  if (!result.ok) return { error: result.error, values };
+  revalidatePath("/", "layout");
+  return { message: "Renamed." };
+}
+
+export async function deleteCategoryAction(formData: FormData): Promise<void> {
+  const actor = await requireManager();
+  await mutate((db) => deleteCategory(db, actor.id, String(formData.get("id") ?? "")));
+  revalidatePath("/", "layout");
 }
