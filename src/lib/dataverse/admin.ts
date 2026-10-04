@@ -20,21 +20,43 @@ export function changeUserRole(db: Database, actorId: string, userId: string, ro
   const user = db.users.find((u) => u.id === userId);
   if (!user) return { ok: false, error: "User not found." };
   const actor = db.users.find((u) => u.id === actorId);
-  if (actor?.role !== "manager") return { ok: false, error: "Only managers can change roles." };
+  if (actor?.role !== "manager" || !actor.active) return { ok: false, error: "Only managers can change roles." };
   if (user.role === role) return { ok: true, unassigned: 0 };
 
-  let unassigned = 0;
-  if (role === "employee") {
-    for (const t of db.tickets) {
-      if (t.assigneeId === user.id && isOpen(t)) {
-        t.assigneeId = null;
-        t.updatedAt = new Date().toISOString();
-        addSystemEntry(db, t.id, `${actor.name} changed ${user.name}'s role to employee, so this ticket is now unassigned`);
-        unassigned++;
-      }
+  const unassigned = role === "employee" ? unassignOpenTickets(db, user.id, `${actor.name} changed ${user.name}'s role to employee`) : 0;
+  user.role = role as Role;
+  return { ok: true, unassigned };
+}
+
+/** Takes a person off every open ticket they hold, noting why on each one. Resolved and closed tickets keep their history. */
+function unassignOpenTickets(db: Database, userId: string, reason: string): number {
+  let count = 0;
+  for (const t of db.tickets) {
+    if (t.assigneeId === userId && isOpen(t)) {
+      t.assigneeId = null;
+      t.updatedAt = new Date().toISOString();
+      addSystemEntry(db, t.id, `${reason}, so this ticket is now unassigned`);
+      count++;
     }
   }
-  user.role = role as Role;
+  return count;
+}
+
+/**
+ * Deactivates or reactivates an account. Deactivated people cannot sign in and are never offered as
+ * assignees, but their name stays on past tickets and comments. Managers cannot deactivate
+ * themselves. The caller must also end the user's sessions (see setUserActiveAction).
+ */
+export function setUserActive(db: Database, actorId: string, userId: string, active: boolean): Result<{ unassigned: number }> {
+  if (actorId === userId) return { ok: false, error: "You cannot deactivate your own account." };
+  const actor = db.users.find((u) => u.id === actorId);
+  if (actor?.role !== "manager" || !actor.active) return { ok: false, error: "Only managers can do this." };
+  const user = db.users.find((u) => u.id === userId);
+  if (!user) return { ok: false, error: "User not found." };
+  if (user.active === active) return { ok: true, unassigned: 0 };
+
+  const unassigned = active ? 0 : unassignOpenTickets(db, user.id, `${actor.name} deactivated ${user.name}'s account`);
+  user.active = active;
   return { ok: true, unassigned };
 }
 
