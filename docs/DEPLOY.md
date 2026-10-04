@@ -32,6 +32,9 @@ Without email, the "Forgot your password?" link is hidden in production, and man
 
 The Resend call is covered by unit tests with a mocked `fetch`, but it has **not** been run against the real service. After deploying, request a reset for your own address and read the first mail before relying on it.
 
+## 2c. Scheduled flows (optional)
+`vercel.json` already schedules `/api/cron/maintenance` daily at 06:00 UTC (the most a free Vercel plan allows). Set `CRON_SECRET` in Vercel (any long random string; `.env.example` shows how to make one) and Vercel Cron sends it as `Authorization: Bearer ...` automatically. Without the variable the endpoint returns 404 and nothing runs; managers can still press the buttons on **Flow runs**. After the first scheduled run (or by calling it yourself with `curl -H "Authorization: Bearer $CRON_SECRET" https://your-app.vercel.app/api/cron/maintenance`) the run history shows "Scheduled run" entries.
+
 ## 3. Deploy
 1. Push the repo to GitHub (already done) and import it in Vercel. The Next.js preset is detected automatically.
 2. Add environment variables (Project, Settings, Environment Variables):

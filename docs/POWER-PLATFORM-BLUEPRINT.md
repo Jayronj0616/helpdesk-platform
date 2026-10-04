@@ -105,6 +105,11 @@ Create these in the solution (New > Automation > Cloud flow).
 ### SLA pause while waiting
 In Dataverse this is usually done with an **SLA** record (Customer Service) that supports *Pause* on a status, or by hand: when Status changes to Waiting, a flow (or a business rule) stamps **Waiting Since**; when it changes back, a flow adds the elapsed time to **Due At** and clears Waiting Since. The Escalation flow's filter then needs `Status ne Waiting`. Interview point: the common mistake is only pausing the displayed timer and forgetting to exclude paused rows from the escalation query.
 
+### Flow 5: "Close resolved tickets" (Scheduled cloud flow)
+- **Trigger**: Recurrence, daily.
+- **Actions**: *List rows* on Ticket with filter `hd_status eq 3 and hd_resolvedon lt @{addDays(utcNow(), -7)}` (3 = Resolved in your choice column), then *Apply to each*: *Update a row* (Status = Closed) and *Send an email* to the requester. Use the same 7 in the canvas app's reopen rule, kept in an **environment variable** so the two cannot drift apart.
+- Interview point: a scheduled flow that filters in the *List rows* query (OData) instead of fetching everything and using a *Filter array* action is faster and avoids hitting the 5,000-row default limit.
+
 ### Flow 4: "When a ticket is reopened" (Automated cloud flow)
 - **Trigger**: Dataverse, *When a row is added, modified or deleted* (Ticket, change type *Modified*, **filter columns** = Status).
 - **Condition**: the new Status is Active and the previous Status was Resolved (use *Get a row* by ID, or keep a *Previous status* column that a business rule or the flow maintains, because the trigger only gives you the new value).

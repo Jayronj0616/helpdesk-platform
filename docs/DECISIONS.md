@@ -80,5 +80,8 @@ Closed is final by design (staff close on purpose), and a resolution from last m
 ## 26. Waiting on the customer pauses the SLA
 A ticket parked on the customer was being escalated for a delay that was not the team's fault. Entering Waiting now records `waitingSince`, and leaving it pushes the due date back by exactly the time waited, so a due date still means "when the team has to act" and nothing is double counted. A Waiting ticket cannot be overdue, so it is never escalated. Migration 4 starts existing Waiting tickets' pause at their last update, the best the old data allows.
 
-## 27. Small commits
+## 27. Time-based flows run from a protected cron endpoint
+Escalation and auto-close were buttons, which is not an automation. A cron endpoint that Vercel calls on a schedule makes them real without a worker process, and it is safe to leave in the codebase because it does not exist unless `CRON_SECRET` is set and compares the secret in constant time. Auto-close and the reopen window share one constant (`REOPEN_WINDOW_DAYS`), and a test checks that for every age the flow closes exactly the tickets `canReopen` refuses, so a ticket can never be both closed and reopenable. The default schedule is daily because that is what a free Vercel plan accepts; a deploy with a more frequent schedule is rejected there.
+
+## 28. Small commits
 The owner wants one logical change per commit (it also reads well in history and helps their GitHub contribution graph).

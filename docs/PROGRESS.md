@@ -38,6 +38,7 @@ Status key: `[x]` done, `[~]` in progress, `[ ]` to do.
 - [x] Performance: pages load only the tables they use (typed `readDb([...])`), one ticket's comments by indexed query, indexes on the hot lookups
 - [x] Reopen a resolved ticket (7-day window, reason required, SLA restarts, "reopened" flow)
 - [x] SLA clock pauses while a ticket is Waiting on the customer, and gives the time back on resume (migration 4)
+- [x] Scheduled maintenance: auto-close tickets resolved over a week ago, a manager button for it, and a CRON_SECRET-protected cron endpoint (`vercel.json`, daily) that runs escalation and auto-close
 - [x] GitHub Actions CI (lint, types, unit tests, build, e2e), passing on Linux
 - [x] **Versioned migrations** (`migrations.ts`, version in `meta`), safe on concurrent startup
 - [x] **Deactivate and reactivate users** (never delete): blocks sign-in, ends sessions, unassigns open tickets, hidden from assignee lists and flows

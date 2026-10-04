@@ -23,6 +23,7 @@ src/
     reset-password/[token]/  Choose a new password from an emailed link
     dev/outbox/page.tsx   Development mail catcher (404 in production or with a provider)
     api/health/route.ts   Public health check for monitors and post-deploy checks
+    api/cron/maintenance/route.ts  Scheduled flows, protected by CRON_SECRET
     account/page.tsx      Own profile and password change
     admin/users/page.tsx  User administration (managers only, 404 for everyone else)
     admin/categories/page.tsx  Ticket category management (managers only)
@@ -74,6 +75,7 @@ docs/screenshots/         Images shown in the README
 playwright.config.ts      Playwright config: port 3210, temp SQLite file, one worker
 tests/                    Vitest: queries, comments, flows, admin rules (pure); password, db, accounts, production seed (real SQLite files: password, db, accounts, rate-limit, migrations, production seed, reset, health; mail with stubbed env)
 vitest.config.mts         Test config (resolves the @ alias)
+vercel.json               Cron schedule for /api/cron/maintenance (daily)
 .env.example              DATABASE_URL, DATABASE_AUTH_TOKEN, DEMO_MODE, DEMO_PASSWORD, ADMIN_EMAIL, ADMIN_PASSWORD
 docs/
   INDEX.md                Which doc answers which question
