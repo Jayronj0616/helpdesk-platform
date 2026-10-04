@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { addTicketComment, updateTicket } from "@/app/actions";
-import { RatingForm } from "@/components/ActionForms";
+import { RatingForm, ReopenForm } from "@/components/ActionForms";
+import { REOPEN_WINDOW_DAYS, canReopen } from "@/lib/dataverse/lifecycle";
 import { canRate } from "@/lib/dataverse/feedback";
 import { readComments, readDb } from "@/lib/dataverse/store";
 import { filterVisible } from "@/lib/dataverse/comments";
@@ -72,6 +73,13 @@ export default async function TicketDetail({ params }: PageProps<"/tickets/[id]"
           )}
         </Card>
       </div>
+
+      {canReopen(t, user.id) && (
+        <Card title="Still not fixed?" className="mt-4">
+          <p className="mb-3 text-sm text-slate-600">If this was marked resolved but the problem is still there, reopen it within {REOPEN_WINDOW_DAYS} days and we will pick it up again.</p>
+          <ReopenForm ticketId={t.id} />
+        </Card>
+      )}
 
       {(t.rating !== null || canRate(t, user.id) || (editable && (t.status === "resolved" || t.status === "closed"))) && (
         <Card title="Customer satisfaction" className="mt-4">
