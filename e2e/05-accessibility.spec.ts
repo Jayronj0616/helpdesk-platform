@@ -13,7 +13,7 @@ async function expectNoSeriousViolations(page: Page) {
 }
 
 test("public pages have no serious accessibility violations", async ({ page }) => {
-  for (const path of ["/login", "/register"]) {
+  for (const path of ["/login", "/register", "/forgot-password"]) {
     await page.goto(path);
     await expectNoSeriousViolations(page);
   }
