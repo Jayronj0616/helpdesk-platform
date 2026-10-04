@@ -24,7 +24,7 @@ export function Nav({ user }: { user: User | null }) {
               ))}
             </nav>
             <form action={logout} className="ml-auto flex items-center gap-3 text-sm">
-              <Link href="/account" className="text-slate-600 hover:text-indigo-700">{user.name} <span className="text-slate-400">({user.role})</span></Link>
+              <Link href="/account" className="text-slate-600 hover:text-indigo-700">{user.name} <span className="text-slate-500">({user.role})</span></Link>
               <button className="rounded border border-slate-300 bg-white px-3 py-1 hover:bg-slate-50">Sign out</button>
             </form>
           </>
