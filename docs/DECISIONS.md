@@ -53,5 +53,17 @@ Making the limiter async turned `if (!limiter.attempt(key))` into a silent no-op
 ## 17. Reset restores demo credentials
 On a public demo anyone can change a demo account's password. Reset therefore re-sets the demo passwords and reactivates demo accounts, otherwise one visitor could lock everyone else out of the demo until someone fixed it by hand. This was found by the end-to-end tests.
 
-## 18. Small commits
+## 18. Password reset: only when it can deliver, and no tells
+A reset form that cannot send mail is worse than none, so the feature turns itself off in production without a provider and a fixed `APP_URL`. The link is built from `APP_URL`, never the request Host header, which an attacker could forge to get a victim to click a poisoned link. The response is identical for known, unknown and deactivated addresses and the work runs in `after()`, so neither the text nor the timing leaks who has an account. Tokens are random, hashed, single-use (claimed with one atomic DELETE), expire in an hour, and are cancelled by any other password change. The mailer has a development outbox so the whole flow is testable with no account, and Resend is called over plain HTTP, so there is no SDK to maintain.
+
+## 19. Security headers without a script CSP
+Simple headers and a partial CSP (framing, base URI, form targets, plugins) are cheap and safe. A CSP that restricts scripts needs per-request nonces with Next.js, which makes every page dynamic and is easy to get subtly wrong, so it is left out on purpose and noted rather than faked.
+
+## 20. A public health endpoint
+It runs the same checks a real request needs (connect, migrate, seed) and returns only `ok` or a bare 503, so a monitor or a post-deploy check can tell a broken deployment from a working one without leaking configuration.
+
+## 21. Screenshots are generated, not hand-made
+`npm run screenshots` rebuilds them from a fresh demo through the real UI, so they cannot drift from the app and anyone can refresh them.
+
+## 22. Small commits
 The owner wants one logical change per commit (it also reads well in history and helps their GitHub contribution graph).
