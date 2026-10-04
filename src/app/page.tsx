@@ -1,5 +1,6 @@
 import { readDb } from "@/lib/dataverse/store";
 import { isOpen, isOverdue, ticketsPerDay } from "@/lib/dataverse/queries";
+import { averageRating } from "@/lib/dataverse/feedback";
 import { requireUser, canWorkTickets } from "@/lib/session";
 import { Card, PageTitle, label } from "@/components/ui";
 
@@ -23,11 +24,17 @@ export default async function Dashboard() {
   const byCategory = count(tickets, (t) => db.categories.find((c) => c.id === t.categoryId)?.name ?? "Other");
   const assetStatus = count(db.assets, (a) => a.status);
 
-  const kpis = [
+  const satisfaction = averageRating(tickets);
+  const kpis: { name: string; value: string | number; alert?: boolean; note?: string }[] = [
     { name: "Open tickets", value: open.length },
     { name: "SLA breached", value: breached.length, alert: breached.length > 0 },
     { name: "Avg. resolution", value: `${avgHours.toFixed(1)}h` },
     { name: "Pending requests", value: requests.filter((r) => r.status === "pending").length },
+    {
+      name: "Satisfaction",
+      value: satisfaction ? `${satisfaction.average.toFixed(1)} / 5` : "-",
+      note: satisfaction ? `${satisfaction.count} rating${satisfaction.count === 1 ? "" : "s"}` : "No ratings yet",
+    },
   ];
   const trend = ticketsPerDay(tickets, 7);
   const trendMax = Math.max(1, ...trend.map((d) => d.count));
@@ -35,11 +42,12 @@ export default async function Dashboard() {
   return (
     <>
       <PageTitle sub={`Viewing as ${user.name}${canWorkTickets(user) ? " (all tickets)" : " (your tickets only)"}`}>Dashboard</PageTitle>
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
         {kpis.map((k) => (
           <Card key={k.name}>
             <p className="text-sm text-slate-500">{k.name}</p>
             <p className={`mt-1 text-3xl font-semibold ${k.alert ? "text-red-600" : ""}`}>{k.value}</p>
+            {k.note && <p className="text-xs text-slate-500">{k.note}</p>}
           </Card>
         ))}
       </div>
