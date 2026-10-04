@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { changePassword } from "@/app/auth-actions";
 import { createUserAction, resetUserPasswordAction } from "@/app/admin-actions";
-import { createAssetAction } from "@/app/actions";
+import { createAssetAction, updateProfileAction } from "@/app/actions";
 import { btnCls, btnGhostCls, inputCls, label } from "@/components/ui";
 import { ROLES } from "@/lib/dataverse/types";
 import type { FormState } from "@/lib/form-state";
@@ -79,6 +79,18 @@ export function AddAssetForm({ types }: { types: string[] }) {
       </Field>
       <Field id="as-date" text="Purchased"><input id="as-date" name="purchasedAt" type="date" defaultValue={v?.purchasedAt} className={inputCls} /></Field>
       <button className={btnCls} disabled={pending}>{pending ? "Adding..." : "Add asset"}</button>
+    </form>
+  );
+}
+
+export function ProfileForm({ name, department }: { name: string; department: string }) {
+  const [state, action, pending] = useActionState(updateProfileAction, initial);
+  return (
+    <form action={action} className="max-w-sm space-y-3">
+      <Notice state={state} />
+      <Field id="pf-name" text="Full name"><input id="pf-name" name="name" required maxLength={80} defaultValue={state.values?.name ?? name} className={inputCls} /></Field>
+      <Field id="pf-dept" text="Department"><input id="pf-dept" name="department" maxLength={60} defaultValue={state.values?.department ?? department} className={inputCls} /></Field>
+      <button className={btnCls} disabled={pending}>{pending ? "Saving..." : "Save profile"}</button>
     </form>
   );
 }
