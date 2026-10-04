@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { mutate, newId, resetDb } from "@/lib/dataverse/store";
 import { PRIORITIES, TICKET_STATUSES, type Priority, type TicketStatus } from "@/lib/dataverse/types";
@@ -12,7 +13,20 @@ import { label } from "@/components/ui";
 import { createAsset, requestTypes, updateAsset, updateProfile } from "@/lib/dataverse/admin";
 import type { FormState } from "@/lib/form-state";
 import { rateTicket } from "@/lib/dataverse/feedback";
+import { deliverPending, retryFailedAndDeliver } from "@/lib/notifications/deliver";
 import { applyStatusChange, reopenTicket } from "@/lib/dataverse/lifecycle";
+
+// Sends the emails the flows just queued, once the response has gone, so a slow mail provider never slows a page
+// or breaks an update. Anything that fails stays in the outbox and is retried (see lib/notifications).
+function deliverSoon() {
+  after(async () => {
+    try {
+      await deliverPending();
+    } catch (err) {
+      console.error("email delivery failed:", err);
+    }
+  });
+}
 
 export async function createTicket(formData: FormData) {
   const user = await requireUser();
@@ -41,6 +55,7 @@ export async function createTicket(formData: FormData) {
   });
 
   if (number === null) return;
+  deliverSoon();
   revalidatePath("/", "layout");
   redirect(`/tickets?created=${number}`);
 }
@@ -133,6 +148,7 @@ export async function decideRequest(formData: FormData) {
     req.decidedAt = new Date().toISOString();
     onAssetRequestDecided(db, req);
   });
+  deliverSoon();
   revalidatePath("/", "layout");
 }
 
@@ -140,6 +156,7 @@ export async function runCloseResolved() {
   const user = await requireUser();
   if (!canApprove(user)) return;
   await mutate((db) => closeStaleResolved(db));
+  deliverSoon();
   revalidatePath("/", "layout");
 }
 
@@ -147,6 +164,7 @@ export async function runEscalation() {
   const user = await requireUser();
   if (!canApprove(user)) return;
   await mutate((db) => escalateOverdue(db));
+  deliverSoon();
   revalidatePath("/", "layout");
 }
 
@@ -212,6 +230,15 @@ export async function reopenTicketAction(_prev: FormState, formData: FormData): 
   const values = { reason: String(formData.get("reason") ?? "") };
   const result = await mutate((db) => reopenTicket(db, user.id, ticketId, values.reason));
   if (!result.ok) return { error: result.error, values };
+  deliverSoon();
   revalidatePath("/", "layout");
   return { message: "Ticket reopened." };
+}
+
+// Manager button: give emails that ran out of attempts another go, and send anything waiting.
+export async function sendQueuedEmails() {
+  const user = await requireUser();
+  if (!canApprove(user)) return;
+  await retryFailedAndDeliver();
+  revalidatePath("/flows");
 }
