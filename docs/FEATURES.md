@@ -15,13 +15,13 @@ Every route, what it does, and who can do what. Role checks live in `src/app/act
 | `/forgot-password`, `/reset-password/[token]` | Password reset by emailed link (see Authentication). 404 when email is not configured in production. | yes | yes | yes |
 | `/dev/outbox` | Development mail catcher: emails the app would have sent. 404 in production and whenever a provider is configured. | dev only | dev only | dev only |
 | `/api/health` | Public JSON `{status}`: 200 when the database is reachable, migrated and seeded, otherwise a bare 503 (no details) | yes | yes | yes |
-| `/account` | Own profile and change password (needs the current password; signs out other devices) | yes | yes | yes |
+| `/account` | Edit your own name and department (`updateProfileAction`; email is your sign-in and role is set by a manager, so neither is editable here) and change your password (needs the current password; signs out other devices) | yes | yes | yes |
 | `/admin/users` | List users, create a user with any role, change a role, reset a password, deactivate or reactivate an account. 404 for non-managers. | no | no | yes |
 | `/requests` | Submit an asset request; list | own | all (read) | all, approve or reject |
 | `/flows` | Flow run history | read | read | read, run escalation, reset demo data (demo mode only) |
 
 ## Server actions (`src/app/actions.ts`)
-`createTicket`, `updateTicket`, `addTicketComment`, `createAssetRequest`, `decideRequest`, `runEscalation`, `resetDemoData`, `createAssetAction`, `updateAssetAction`. Each re-checks the role itself, never trusting the UI.
+`createTicket`, `updateTicket`, `addTicketComment`, `createAssetRequest`, `decideRequest`, `runEscalation`, `resetDemoData`, `createAssetAction`, `updateAssetAction`, `updateProfileAction`. Each re-checks the role itself, never trusting the UI.
 
 ## Admin actions (`src/app/admin-actions.ts`, managers only)
 `createUserAction`, `setUserRoleAction`, `setUserActiveAction`, `resetUserPasswordAction`. Rules:
