@@ -101,6 +101,7 @@ export async function setPassword(userId: string, password: string): Promise<Pas
     args: [await hashPassword(password), userId],
   });
   if (res.rowsAffected === 0) return { ok: false, error: "Account not found." };
+  await client.execute({ sql: "DELETE FROM auth_reset_tokens WHERE user_id = ?", args: [userId] });
   await destroyUserSessions(userId);
   return { ok: true };
 }
@@ -116,6 +117,7 @@ export async function changeOwnPassword(userId: string, current: string, next: s
   if (bad) return { ok: false, error: bad };
 
   await client.execute({ sql: "UPDATE auth_credentials SET password_hash = ? WHERE user_id = ?", args: [await hashPassword(next), userId] });
+  await client.execute({ sql: "DELETE FROM auth_reset_tokens WHERE user_id = ?", args: [userId] });
   await destroyUserSessions(userId, keepToken);
   return { ok: true };
 }
