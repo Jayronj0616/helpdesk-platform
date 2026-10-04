@@ -24,6 +24,17 @@ An IT helpdesk and asset tracker built with Next.js. It is structured like a Mic
 
 Sign in as any demo account (listed on the login page) to try each role: employee, agent or manager. You can also register a new employee account.
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Dashboard](docs/screenshots/dashboard.png) **Dashboard** (manager) | ![Ticket](docs/screenshots/ticket-detail.png) **Ticket**: comments, an internal note, audit trail |
+| ![Flow runs](docs/screenshots/flows.png) **Flow runs** | ![Users](docs/screenshots/admin-users.png) **User administration** |
+| ![Assets](docs/screenshots/assets.png) **Assets** | ![Requests](docs/screenshots/requests.png) **Asset requests** and approvals |
+| ![Login](docs/screenshots/login.png) **Sign in** with demo accounts | ![Phone](docs/screenshots/tickets-mobile.png) **Phone width** |
+
+Regenerate them with `npm run screenshots`.
+
 ## Docs
 
 Project docs live in [docs/](docs/INDEX.md): current state, progress tracker, structure, data model, features and permissions, flows, testing and design decisions. `AGENTS.md` and `CLAUDE.md` point AI coding tools at them.
