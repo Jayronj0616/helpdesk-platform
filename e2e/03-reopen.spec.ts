@@ -29,7 +29,22 @@ test("a requester reopens a resolved ticket and the assignee is notified", async
   await loginAs(page, USERS.dina);
   await page.goto("/flows");
   await expect(page.getByText("When a ticket is reopened")).toBeVisible();
-  await expect(page.getByText("Sent email to ana@contoso.test: ticket #1003 was reopened by the requester")).toBeVisible();
+  await expect(page.getByText("Queued email to ana@contoso.test: Ticket #1003 was reopened by the requester")).toBeVisible();
+
+  // The email was really delivered (to the dev outbox, since no provider is configured), and the manager sees it
+  // in the queue. Delivery happens just after the response, so poll.
+  await expect(async () => {
+    await page.goto("/flows");
+    const queueRow = page.getByRole("row").filter({ hasText: "Ticket #1003 was reopened by the requester" });
+    await expect(queueRow).toContainText("ana@contoso.test");
+    await expect(queueRow).toContainText("sent");
+  }).toPass({ timeout: 15_000 });
+  await expect(page.getByRole("heading", { name: "Email queue" })).toBeVisible();
+
+  await page.goto("/dev/outbox");
+  const mailCard = page.locator("section").filter({ hasText: "Ticket #1003 was reopened by the requester" }).first();
+  await expect(mailCard).toContainText("To ana@contoso.test");
+  await expect(mailCard).toContainText("Open the ticket:");
   await logout(page);
 });
 

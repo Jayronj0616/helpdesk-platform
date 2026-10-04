@@ -81,6 +81,8 @@ test.describe("agent", () => {
     await page.goto("/flows");
     await expect(page.getByRole("button", { name: /Escalate overdue/ })).toBeDisabled();
     await expect(page.getByRole("button", { name: /Close resolved tickets/ })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Send queued emails now" })).toBeDisabled();
+    await expect(page.getByRole("heading", { name: "Email queue" })).toHaveCount(0); // addresses and subjects are for managers
   });
 });
 
