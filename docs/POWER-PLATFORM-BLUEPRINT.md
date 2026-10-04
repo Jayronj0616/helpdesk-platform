@@ -16,7 +16,7 @@ Create these in the solution (New > Table). Use the display names below; Dataver
 | Table | Key columns | Notes |
 |---|---|---|
 | **Category** | Name (text) | Reference data |
-| **Ticket** | Number (autonumber, prefix `TKT-`), Title (text), Description (multiline), Priority (choice: Low, Medium, High, Critical), Status (choice: New, In progress, Waiting, Resolved, Closed), Category (lookup), Requester (lookup to User), Assignee (lookup to User), Related Asset (lookup), Due At (date and time), Resolved On (date and time), Escalated (yes/no) | The main table |
+| **Ticket** | Number (autonumber, prefix `TKT-`), Title (text), Description (multiline), Priority (choice: Low, Medium, High, Critical), Status (choice: New, In progress, Waiting, Resolved, Closed), Category (lookup), Requester (lookup to User), Assignee (lookup to User), Related Asset (lookup), Due At (date and time), Resolved On (date and time), Escalated (yes/no), Rating (whole number 1 to 5, set a minimum and maximum), Rating Comment (multiline), Rated On (date and time) | The main table |
 | **Ticket Comment** | Ticket (lookup, required), Body (multiline), Author (lookup to User, empty for system entries), Kind (choice: Comment, System), Internal (yes/no) | Activity thread and audit trail. Alternatively use the built-in **Notes** (Annotations) or **Posts** feature for public comments; keep this table when you need the Internal flag. |
 | **Asset** | Tag (text, unique), Name (text), Type (choice), Status (choice: Available, Assigned, Repair, Retired), Assigned To (lookup to User), Purchased On (date) | Inventory |
 | **Asset Request** | Asset Type (choice), Justification (multiline), Requester (lookup), Status (choice: Pending, Approved, Rejected), Decided By (lookup), Decided On (date and time) | Drives the approval flow |
@@ -101,6 +101,12 @@ Create these in the solution (New > Automation > Cloud flow).
      - **Reject**: update the request Status to Rejected and *Send an email*.
 
 **Audit trail:** in Flows 1 and 2, add a *Add a new row* action on Ticket Comment (Kind = System, Internal = No) describing what the flow did. This is what the "Activity" thread shows on each ticket.
+
+### Flow 4: "When a ticket is reopened" (Automated cloud flow)
+- **Trigger**: Dataverse, *When a row is added, modified or deleted* (Ticket, change type *Modified*, **filter columns** = Status).
+- **Condition**: the new Status is Active and the previous Status was Resolved (use *Get a row* by ID, or keep a *Previous status* column that a business rule or the flow maintains, because the trigger only gives you the new value).
+- **Actions**: *Update a row*: Due At = `addHours(utcNow(), <SLA hours for the priority>)`, Escalated = No, Resolved On cleared; *Send an email (V2)* to the assignee, or to the manager when the Assignee lookup is empty.
+- Interview point: the *filter columns* setting stops the flow firing on every edit of the row, which is the usual cause of runaway flows and wasted API calls. Customer satisfaction is just three more Ticket columns; a canvas app screen shown to the requester when Status is Resolved would collect it, and a Power BI average over the Rating column gives the dashboard tile.
 
 Interview points: approvals show up for the manager in Teams, Outlook and the Power Automate Approvals center with no extra UI work. Use **Run history** to debug (this is what the `/flows` page imitates). Put connection references and environment variables in the solution so it deploys cleanly.
 
