@@ -4,13 +4,17 @@
 import { newId } from "../dataverse/store";
 import { addSystemEntry } from "../dataverse/comments";
 import type { Database, Ticket, AssetRequest } from "../dataverse/types";
-import { SLA_HOURS } from "../dataverse/types";
+import { REOPEN_WINDOW_DAYS, SLA_HOURS } from "../dataverse/types";
 import { isOverdue } from "../dataverse/queries";
 
 function logRun(db: Database, flow: string, trigger: string, actions: string[]) {
   db.flowRuns.unshift({ id: newId("run"), flow, trigger, actions, at: new Date().toISOString() });
   db.flowRuns = db.flowRuns.slice(0, 100);
 }
+
+/** Who started a flow run, shown in the run history. Scheduled runs come from the cron endpoint. */
+export type RunSource = "manual" | "scheduled";
+const runLabel = (source: RunSource, schedule: string) => (source === "scheduled" ? `Scheduled run (${schedule})` : `Manual run (scheduled ${schedule} in production)`);
 
 const OPEN: Ticket["status"][] = ["new", "in_progress", "waiting"];
 
@@ -53,7 +57,7 @@ export function onTicketCreated(db: Database, ticket: Ticket) {
  *  - find open tickets past their SLA that are not yet escalated
  *  - bump priority one level and notify the manager
  */
-export function escalateOverdue(db: Database, now = Date.now()): number {
+export function escalateOverdue(db: Database, now = Date.now(), source: RunSource = "manual"): number {
   const order: Ticket["priority"][] = ["low", "medium", "high", "critical"];
   // isOverdue ignores tickets that are Waiting, because their SLA clock is paused.
   const overdue = db.tickets.filter((t) => !t.escalated && isOverdue(t, now));
@@ -71,7 +75,7 @@ export function escalateOverdue(db: Database, now = Date.now()): number {
   }
   if (!overdue.length) actions.push("No overdue tickets found");
 
-  logRun(db, "Escalate overdue tickets", "Manual run (scheduled hourly in production)", actions);
+  logRun(db, "Escalate overdue tickets", runLabel(source, "hourly"), actions);
   return overdue.length;
 }
 
@@ -118,4 +122,33 @@ export function onTicketReopened(db: Database, ticket: Ticket) {
     if (manager) actions.push(`Sent email to ${manager.email}: reopened ticket #${ticket.number} needs an owner`);
   }
   logRun(db, "When a ticket is reopened", `Ticket #${ticket.number}`, actions);
+}
+
+/**
+ * Flow 5: "Close resolved tickets" (scheduled)
+ *  - a ticket that has stayed Resolved for longer than the reopen window can no longer be reopened, so close it
+ *  - tell the requester
+ */
+export function closeStaleResolved(db: Database, now = Date.now(), source: RunSource = "manual"): number {
+  const limit = REOPEN_WINDOW_DAYS * 86_400_000;
+  const stale = db.tickets.filter((t) => t.status === "resolved" && t.resolvedAt && now - new Date(t.resolvedAt).getTime() > limit);
+  const actions: string[] = [];
+
+  for (const t of stale) {
+    const requester = db.users.find((u) => u.id === t.requesterId);
+    t.status = "closed";
+    t.updatedAt = new Date(now).toISOString();
+    addSystemEntry(db, t.id, `Flow closed this ticket: it was resolved more than ${REOPEN_WINDOW_DAYS} days ago with no reply`);
+    actions.push(`Closed ticket #${t.number} (resolved ${new Date(t.resolvedAt!).toISOString().slice(0, 10)})`);
+    if (requester) actions.push(`Sent email to ${requester.email}: ticket #${t.number} was closed`);
+  }
+  if (!stale.length) actions.push(`No resolved tickets are older than ${REOPEN_WINDOW_DAYS} days`);
+
+  logRun(db, "Close resolved tickets", runLabel(source, "daily"), actions);
+  return stale.length;
+}
+
+/** What the scheduled job runs: every time-based flow. */
+export function runMaintenance(db: Database, now = Date.now(), source: RunSource = "scheduled"): { escalated: number; closed: number } {
+  return { escalated: escalateOverdue(db, now, source), closed: closeStaleResolved(db, now, source) };
 }
