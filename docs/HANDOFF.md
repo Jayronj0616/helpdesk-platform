@@ -28,7 +28,7 @@ An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power P
 - `config.ts` reads env vars at import time. Tests that need different env set it before a dynamic `import()`, one test file per scenario (vitest isolates modules per file).
 - Unit tests depend on the relative dates in `seed.ts`.
 - Async functions (`readDb`, `mutate`, the limiter, auth) must be awaited. TypeScript does not catch `if (!limiter.attempt(k))`, so the type-aware lint rules do; do not turn them off.
-- E2E tests share one database and run in file order (01 to 06); a new test must fit that order. Playwright reloads its config in each worker, so never delete the database unconditionally there.
+- E2E tests share one database and run in file order (01 to 06); a new test must fit that order, and `docs/TESTING.md` lists which user each file changes (for example Ana is demoted in 04-admin, so later files use Ben as the agent). Playwright reloads its config in each worker, so never delete the database unconditionally there.
 - Vitest 5 needs `@types/node` 22 or newer (already upgraded).
 - To sign in during testing: demo accounts and the shared password are on the login page (default `helpdesk-demo`). The browser tool can fill the login form; `form.requestSubmit()` through JavaScript works for inline forms.
 - Bash heredocs with quotes can fail in this environment, and `python` is a hanging Windows Store stub. Write files with the editor tools and use `node` scripts (a file, not `node -e`, when the text has apostrophes).

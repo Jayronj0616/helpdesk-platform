@@ -20,6 +20,7 @@ Most logic is pure functions over a `Database`, so those tests build a fresh `se
 | `tests/queries.test.ts` | `isOverdue`, `filterTickets` (every filter, search, sorting, no input mutation), `paginate`, `ticketsPerDay` |
 | `tests/csv.test.ts` | `csvCell` and `toCsv` (quoting, formula neutralising for every trigger character, no change mid-text, BOM and CRLF) and `parseTicketFilters` (valid values, invalid and repeated ignored, `hasFilters`) |
 | `tests/export-route.test.ts` | The export route against a real database with the session stubbed: 401, 403, staff download headers, same filters as the list, names and dates not ids, formulas neutralised |
+| `tests/feedback.test.ts` | `rateTicket` (requester only, resolved or closed only, once only, 1 to 5 whole numbers, comment length, trimmed, audit entry, no tell between missing and not yours), `canRate`, `averageRating` |
 | `tests/comments.test.ts` | `visibleComments` (internal notes hidden from employees, ordering), `addComment`, `addSystemEntry` |
 | `tests/flows.test.ts` | `onTicketCreated`, `escalateOverdue`, `onAssetRequestDecided` |
 | `tests/password.test.ts` | scrypt hash and verify (random salt, tamper and malformed rejection) |
@@ -27,7 +28,7 @@ Most logic is pure functions over a `Database`, so those tests build a fresh `se
 | `tests/reset.test.ts` | Reset tokens: unknown and deactivated accounts get none, stored hashed, a new request replaces the old link, expiry, single use even under a race, weak password does not burn the link, cancelled by other password changes, dead if the account is deactivated afterwards, signs out all sessions |
 | `tests/mail.test.ts` | `mailMode` and `appUrl` for every combination (including never trusting the request host in production), `passwordResetAvailable`, sending through Resend (bearer key, body), provider errors without leaking the key, dev outbox, refusing to send in production with no provider |
 | `tests/health.test.ts` | Health endpoint: ok, no-store, and a bare 503 with no details on failure |
-| `tests/migrations.test.ts` | Upgrading a version 1 database keeps data, safe to re-run, two instances migrating at once, fresh databases are stamped without migrating |
+| `tests/migrations.test.ts` | Upgrading a version 1 database keeps data (users and tickets), adds the rating columns, upgrades from version 2 without re-running version 2, the database refuses a rating outside 1 to 5, safe to re-run, two instances migrating at once, fresh databases are stamped without migrating |
 | `tests/admin.test.ts` | `changeUserRole` (promote, self-change blocked, non-manager blocked, demotion unassigns open tickets with audit), `setUserActive` (unassigns, self blocked, inactive manager blocked), `updateProfile` (trims, defaults, never touches email, role or active), categories (add, duplicate and length checks, manager-only, rename keeps the link, delete only when unused and never the last one), `createAsset`, `updateAsset`, `requestTypes` |
 | `tests/accounts.test.ts` | deactivated accounts cannot sign in and lose their sessions immediately, `createAccount` with a role, `registerUser` stays employee-only, `setPassword` (signs the user out, leaves others signed in), `changeOwnPassword` (current password required, keeps only the current session) |
 | `tests/production-seed.test.ts`, `tests/production-missing-admin.test.ts` | `DEMO_MODE=0` first run: one manager, categories, no demo data, admin signs in; and a loud, retryable failure when `ADMIN_EMAIL` or `ADMIN_PASSWORD` is missing |
@@ -46,12 +47,31 @@ Playwright drives the **already installed Chrome** (no browser download; `E2E_BR
 | `02-employee` | 404 on other people's tickets and the admin page, own tickets only, internal notes hidden, creation flow (SLA, auto-assignment, audit trail, flow log), commenting, search and filters, asset requests |
 | `03-staff-and-manager` | Agent: all tickets, internal notes (hidden from the requester), audit entries, add asset (uppercased tag, duplicate rejected, status edit), cannot approve. Manager: approve assigns an asset, escalation, reject |
 | `04-admin` | Create an agent who can sign in, demote (unassigns tickets), deactivate and reactivate, session ended immediately on deactivation, password reset signs the user out, own role locked |
+| `03-feedback` | A requester must choose a rating, rates a resolved ticket once, sees the saved rating and a thank-you, the form never comes back, staff see it but cannot rate, dashboard averages (own 4.0, manager 4.5) |
 | `04-categories` | Managers only (404 otherwise), add, duplicate refused, the ticket form follows, rename, delete, a category with tickets cannot be deleted |
 | `04-export` | An employee cannot export (403, no button), signed-out is 401, staff get a filtered CSV, a formula title is neutralised, and the button downloads a real file |
 | `05-accessibility` | axe (WCAG 2 A and AA) on public, employee, staff and manager pages with no serious or critical violations, plus a keyboard-only sign-in |
 | `05-password-reset` | Forgot-password link, identical answer for real and unknown emails (only the real one is emailed), the whole reset through the dev outbox, other sessions signed out, link single-use, made-up link |
 | `05-account` | Edit own name and department (email and role not editable, nav shows the new name), change own password (current one required, old one dies, other devices signed out) |
 | `06-reset` | Runs last: reset restores the seed, removes registered users, restores demo passwords, keeps the manager signed in |
+
+### Who each file changes (the files share one database and run in order)
+A test that passes alone can fail in the full run if an earlier file changed the user it relies on. Keep this list current.
+
+| File | Changes |
+|---|---|
+| `01-auth` | Registers `e2e.newhire@contoso.test` (password `a-long-password-1`) |
+| `02-employee` | Maria creates ticket 1007 and a comment and a request |
+| `03-feedback` | Maria rates ticket 1003 (4) |
+| `03-staff-and-manager` | Ana's notes and status edits, asset E2E-001, request approved (MN-0001 to Maria) and rejected, escalation of ticket 1001 |
+| `04-admin` | Creates Sam, **demotes Ana to employee**, deactivates and reactivates Ben and Carlo, **resets Carlo's password** |
+| `04-categories` | Adds, renames and deletes a category |
+| `04-export` | Maria creates a formula-titled ticket (use **Ben** as staff here, Ana is no longer one) |
+| `05-account` | Renames the registered user to "New Hire Jr", **changes Maria's password** (twice) |
+| `05-password-reset` | **Changes Ben's password** |
+| `06-reset` | Restores the seed and the demo passwords |
+
+So after `04-admin`, use Ben (not Ana) as an agent and don't expect Carlo's or Ana's original state; after `05-account`, Maria's password is no longer the demo one. Users nobody else touches: Dina (manager, but don't rename her).
 
 Notes: the first test in a run is slow because the dev server compiles pages on demand. A `[WebServer] The destination stream closed early` line is the server noticing a browser tab was closed mid-response and is not an app error. Playwright reloads `playwright.config.ts` in every worker, so the database is only deleted when `TEST_WORKER_INDEX` is unset.
 
