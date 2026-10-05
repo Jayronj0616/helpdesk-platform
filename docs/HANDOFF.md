@@ -39,6 +39,8 @@ An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power P
 - Regenerate screenshots (`npm run screenshots`) after visible UI changes and commit them.
 - Emails: flows call `queueMail(db, ...)` (inside `mutate`), never `sendMail`; actions call `deliverSoon()` after a flow runs. A new action that runs a flow must do the same, or its emails wait for the next send. Addresses on reserved domains (the demo accounts) are skipped when a real provider is configured, by design.
 - Cron and `after()` work happens after the response, so tests that check email poll (`toPass`) instead of reading once.
+- The UI is **light-only on purpose** (`color-scheme: light` in `globals.css`); do not re-add the starter's `prefers-color-scheme: dark` block. Visual bugs that depend on the device (dark mode, reduced motion, small screens) are invisible to the default test run: emulate them explicitly, as `05-appearance` does.
+- A second `next dev` cannot start in the same folder while one is running (Next takes a lock), so stop a preview server before `npm run test:e2e` or `npm run screenshots`.
 - Windows: git prints CRLF warnings and may exit 255 on success. Check `git log`, not the exit code.
 - The user wants many small, single-purpose commits (they care about GitHub contributions).
 
