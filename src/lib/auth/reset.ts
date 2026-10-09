@@ -60,7 +60,7 @@ export async function isResetTokenValid(token: string, now = Date.now()): Promis
  * ended afterwards, because whoever had the old password or a stolen session must not stay signed in.
  * A weak password is rejected before the token is used up, so the person can try again.
  */
-export async function consumeResetToken(token: string, password: string, now = Date.now()): Promise<PasswordResult> {
+export async function consumeResetToken(token: string, password: string, now = Date.now()): Promise<PasswordResult | { ok: true; userId: string }> {
   const bad = checkPassword(password);
   if (bad) return { ok: false, error: bad };
 
@@ -81,5 +81,5 @@ export async function consumeResetToken(token: string, password: string, now = D
 
   await client.execute({ sql: "UPDATE auth_credentials SET password_hash = ? WHERE user_id = ?", args: [hash, String(userId)] });
   await destroyUserSessions(String(userId));
-  return { ok: true };
+  return { ok: true, userId: String(userId) };
 }

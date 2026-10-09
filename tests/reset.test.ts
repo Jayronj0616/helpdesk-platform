@@ -70,7 +70,7 @@ describe("consumeResetToken", () => {
     const session = await sessions.createSession(u.id);
     const t = await reset.createResetToken("reset1@example.com");
 
-    expect(await reset.consumeResetToken(t!.token, "a-brand-new-pass-9")).toEqual({ ok: true });
+    expect(await reset.consumeResetToken(t!.token, "a-brand-new-pass-9")).toMatchObject({ ok: true });
 
     expect(await creds.authenticate("reset1@example.com", "a-brand-new-pass-9")).not.toBeNull();
     expect(await creds.authenticate("reset1@example.com", "initial-pass-1")).toBeNull();
@@ -80,7 +80,7 @@ describe("consumeResetToken", () => {
   it("works only once", async () => {
     await newUser("reset2@example.com");
     const t = await reset.createResetToken("reset2@example.com");
-    expect(await reset.consumeResetToken(t!.token, "first-new-pass-1")).toEqual({ ok: true });
+    expect(await reset.consumeResetToken(t!.token, "first-new-pass-1")).toMatchObject({ ok: true });
     expect(await reset.consumeResetToken(t!.token, "second-new-pass-2")).toMatchObject({ ok: false });
     expect(await creds.authenticate("reset2@example.com", "first-new-pass-1")).not.toBeNull();
     expect(await creds.authenticate("reset2@example.com", "second-new-pass-2")).toBeNull();
@@ -106,7 +106,7 @@ describe("consumeResetToken", () => {
     const t = await reset.createResetToken("weak@example.com");
     expect(await reset.consumeResetToken(t!.token, "short")).toMatchObject({ ok: false });
     expect(await reset.isResetTokenValid(t!.token)).toBe(true);
-    expect(await reset.consumeResetToken(t!.token, "long-enough-pass-1")).toEqual({ ok: true });
+    expect(await reset.consumeResetToken(t!.token, "long-enough-pass-1")).toMatchObject({ ok: true });
   });
 
   it("rejects an unknown token", async () => {
@@ -128,7 +128,7 @@ describe("consumeResetToken", () => {
     expect(await reset.isResetTokenValid(t1!.token)).toBe(false);
 
     const t2 = await reset.createResetToken("changed@example.com");
-    expect(await creds.changeOwnPassword(u.id, "admin-set-pass-1", "self-set-pass-2")).toEqual({ ok: true });
+    expect(await creds.changeOwnPassword(u.id, "admin-set-pass-1", "self-set-pass-2")).toMatchObject({ ok: true });
     expect(await reset.isResetTokenValid(t2!.token)).toBe(false);
   });
 });
