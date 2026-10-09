@@ -42,6 +42,9 @@ Status key: `[x]` done, `[~]` in progress, `[ ]` to do.
 - [x] Real flow emails through a transactional outbox: queued in the flow's own transaction, delivered after the response with retries, skipped for reserved addresses and when email is off, queue visible to managers with a manual send button
 - [x] Fixed unreadable black-on-black pages on dark-mode devices (light-only is now declared) and the missing Geist font; tests emulate a dark device
 - [x] Staff reports page (`/reports`): SLA met, resolution and first-reply times, satisfaction, trend, and breakdowns by person, category and priority, with a period filter
+- [x] Audit log (`/admin/audit`): append-only, lazy (never loaded by ordinary saves), written in the same transaction as the change, filterable and paged
+- [x] Fixed filter controls staying on an old value after "Clear" (tickets list and the new pages)
+- [x] `docs/WALKTHROUGH.md`: a guided tour by role with talking points and a five-minute script
 - [x] GitHub Actions CI (lint, types, unit tests, build, e2e), passing on Linux
 - [x] **Versioned migrations** (`migrations.ts`, version in `meta`), safe on concurrent startup
 - [x] **Deactivate and reactivate users** (never delete): blocks sign-in, ends sessions, unassigns open tickets, hidden from assignee lists and flows

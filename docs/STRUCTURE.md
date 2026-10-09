@@ -26,6 +26,7 @@ src/
     api/cron/maintenance/route.ts  Scheduled flows, protected by CRON_SECRET
     account/page.tsx      Own profile and password change
     admin/users/page.tsx  User administration (managers only, 404 for everyone else)
+    admin/audit/page.tsx  Audit log viewer (managers only)
     admin/categories/page.tsx  Ticket category management (managers only)
     tickets/
       page.tsx            Ticket list with search, filters, sorting, pagination
@@ -67,6 +68,7 @@ src/
       queue.ts            queueMail, prune (the pure, transactional half: edits the Database a flow is working on)
       deliver.ts          deliverPending, retryFailedAndDeliver, isReservedAddress (sends, retries, records the result)
     flows/index.ts        Automation flows (Power Automate analog). Each logs a FlowRun.
+    audit.ts              addAudit (inside a transaction), recordAudit (straight away), readAudit (paged, filtered), AUDIT_ACTIONS
     csv.ts                csvCell, toCsv (quoting plus spreadsheet formula neutralising)
     mail.ts               sendMail (Resend provider, dev outbox, or off), mailMode, appUrl, passwordResetAvailable
     session.ts            currentUser, requireUser, startSession/endSession (cookie), role checks

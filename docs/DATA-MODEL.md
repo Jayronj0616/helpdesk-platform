@@ -13,6 +13,7 @@ Source of truth is `src/lib/dataverse/types.ts`. This doc explains the meaning a
 | `assets` | id, tag, name, type, status (`available`/`assigned`/`repair`/`retired`), assignedToId?, purchasedAt | |
 | `assetRequests` | id, assetType, justification, requesterId, status (`pending`/`approved`/`rejected`), decidedById?, decidedAt?, createdAt | Decision triggers a flow |
 | `notifications` | id, toAddress, subject, body, ticketId?, createdAt, status (`pending`/`sent`/`failed`/`skipped`, database CHECK), attempts, sentAt?, lastError? | The email outbox: flows add `pending` rows inside their own transaction, `deliverPending()` sends them. Kept 7 days, at most 200 rows (pruned on every queue). |
+| `auditLog` | id, at, actorId?, actorName, action, targetLabel?, detail? | Who did what and when. **Lazy and append-only**: never loaded by ordinary reads or saves (a save starts with an empty array and only inserts what it adds), read with targeted queries by `readAudit`. Not part of the demo reset. |
 | `flowRuns` | id, flow, trigger, actions[], at | Newest first, capped at 100 |
 
 Relations: ticket -> user (requester, assignee), category, asset; comment -> ticket, user; assetRequest -> user; asset -> user.
@@ -53,6 +54,9 @@ Deleting a user (only `resetDb` does) also deletes their credentials and session
 
 ## Reads
 `readDb()` loads everything. `readDb(["users", "tickets"])` loads only those tables in one round trip, and its return type contains only them, so a page cannot quietly use a table it did not request. `readComments(ticketId)` is a single indexed query for one ticket's comments (including internal notes: the caller must pass them through `filterVisible`). `mutate()` always loads everything, because it needs the full picture to work out what changed. Indexes (`INDEX_SQL` in `schema.ts`) cover comments by ticket, tickets by requester, assignee and status, and requests by requester; they are created on every connect with `IF NOT EXISTS`, so existing databases get them without a migration.
+
+## Lazy tables
+A table marked `lazy` in `schema.ts` (today only `audit_log`) is an append-only log that can grow without limit. `readDb()` and `mutate()` never load it: they hand back an empty array, a save inserts only the entries added during it, and nothing in a save can update or delete the old ones. This keeps every page and save the same speed however long the history is, at the price that you cannot read it through the normal `Database`; use `readAudit`.
 
 ## Writes
 `mutate(fn)` runs in one write transaction: load, run `fn`, write back only changed rows (upserts parent-first, deletes child-first). Calls in the same process are queued, and the transaction protects against other processes on the same file. A write still loads every table (to diff it), which is fine into the low thousands of rows; past that, give hot write paths targeted statements.

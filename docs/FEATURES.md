@@ -22,12 +22,16 @@ Every route, what it does, and who can do what. Role checks live in `src/app/act
 | `/api/health` | Public JSON `{status}`: 200 when the database is reachable, migrated and seeded, otherwise a bare 503 (no details) | yes | yes | yes |
 | `/account` | Edit your own name and department (`updateProfileAction`; email is your sign-in and role is set by a manager, so neither is editable here) and change your password (needs the current password; signs out other devices) | yes | yes | yes |
 | `/admin/categories` | Add, rename and delete ticket categories. Renaming keeps every ticket's link (tickets point at the id). A category with tickets cannot be deleted, and at least one must remain. Names are unique ignoring case. 404 for non-managers. | no | no | yes |
+| `/admin/audit` | **Audit log**: who did what, about whom and when, newest first, 25 per page, filterable by kind of action (`?action=`, `?page=`; unknown values ignored). Read-only: nothing edits or deletes an entry. 404 for non-managers. | no | no | yes |
 | `/admin/users` | List users, create a user with any role, change a role, reset a password, deactivate or reactivate an account. 404 for non-managers. | no | no | yes |
 | `/requests` | Submit an asset request; list | own | all (read) | all, approve or reject |
 | `/flows` | Flow run history. Managers also see the **email queue** (to, subject, status, tries, reason; counts of waiting, sent, failed and skipped) and a "Send queued emails now" button. | read | read | read, run escalation, run close-resolved-tickets, reset demo data (demo mode only) |
 
 ## Server actions (`src/app/actions.ts`)
 `createTicket`, `updateTicket`, `addTicketComment`, `createAssetRequest`, `decideRequest`, `runEscalation`, `resetDemoData`, `createAssetAction`, `updateAssetAction`, `updateProfileAction`, `rateTicketAction`, `reopenTicketAction`, `runEscalation`, `runCloseResolved`, `sendQueuedEmails`. Every action that runs a flow sends the queued emails right after the response (`after()`); the queue is described in FLOWS.md. Each re-checks the role itself, never trusting the UI.
+
+## Audit log
+Recorded (see `lib/audit.ts` for the list): user created, role changed, account deactivated or reactivated, password reset by a manager, own password changed, password reset by email, category added, renamed or deleted, asset added or updated, and the manual flow buttons (escalation, close resolved, send queued emails) and the demo reset. Each entry keeps the actor's name as it was at the time. Entries for changes made inside a transaction (roles, categories, assets, flows) are saved **in that same transaction**, so a change that rolls back leaves no entry and an entry never exists without its change; password changes are recorded straight after they succeed. Never put a password, token or link in an entry. The demo reset leaves the log alone and adds an entry for itself.
 
 ## Admin actions (`src/app/admin-actions.ts`, managers only)
 `createUserAction`, `setUserRoleAction`, `setUserActiveAction`, `resetUserPasswordAction`, `addCategoryAction`, `renameCategoryAction`, `deleteCategoryAction`. Rules:

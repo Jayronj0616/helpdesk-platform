@@ -92,5 +92,11 @@ On a device set to dark mode the app rendered near-black with unreadable dark te
 ## 30. Reports are pure functions with the definitions on the page
 A number nobody can explain is worse than no number, so each figure has one written definition (shown under the report) and one pure function with the current time passed in, which is what makes them testable with fixed dates. Choices that matter: a reopened ticket is not "resolved" until it is resolved again; SLA met compares with the due date that already includes Waiting time, so waiting on a customer is never held against the team; "nothing to measure" is a dash, never 0% or NaN; and staff with no tickets still appear, so a quiet person is visible rather than missing. The page reads only the tables it needs and is staff-only (404 for employees).
 
-## 31. Small commits
+## 31. An append-only audit log that costs nothing to carry
+Every save loads and diffs every table, which is fine for tickets but wrong for a log that only grows. So the audit table is "lazy": never loaded, appended inside the same transaction as the change it describes (so there is no entry without a change, and none left behind by a rolled-back one), and read with its own paged queries. Password changes happen outside a transaction, so those are recorded straight after they succeed; the small window where a change could succeed and its entry fail is accepted and written down rather than hidden. Entries keep the actor's name as it was, so a later rename or removal cannot change history, and nothing in the app edits or deletes them (the demo reset deliberately does not touch the log; it adds an entry for itself). It records names, roles and counts only, never a secret, and a test checks no password appears.
+
+## 32. Filter forms get a key
+A GET filter form built from `defaultValue`s kept its old selections after "Clear" or a page link, because React reuses the same inputs on a client-side navigation: the controls said one thing, the results another. Keying the form on the current filters makes it rebuild from the new defaults. The audit log test found it; the tickets list had the same bug, and a test now covers both (and was checked to fail without the fix).
+
+## 33. Small commits
 The owner wants one logical change per commit (it also reads well in history and helps their GitHub contribution graph).

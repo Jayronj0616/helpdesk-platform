@@ -140,6 +140,8 @@ Avg Resolution Hours = AVERAGEX(FILTER(Ticket, NOT(ISBLANK(Ticket[Resolved On]))
 ```
 `DIVIDE` returns blank instead of an error when there are no resolved tickets, which is the same "a dash, not zero" rule the page follows. Slice by Assignee, Category and Priority for the three tables, and put a date slicer on Created On for the period filter.
 
+**Audit log.** In Dataverse this is built in: turn on **auditing** for the environment and then for each table (Settings, Auditing, and the table's *Audit changes to its data* option), and choose which columns to audit. Entries are viewed in the Power Platform admin center (Audit log) or the model-driven app's Audit Summary view, and they record the old and new value, who and when without any code. Interview point: audit user-management and security-role changes separately, because those are the changes an auditor asks about first.
+
 ## 5. Suggested study order
 
 1. Dataverse basics: tables, columns, lookups, choices (Microsoft Learn: *Get started with Microsoft Dataverse*).
