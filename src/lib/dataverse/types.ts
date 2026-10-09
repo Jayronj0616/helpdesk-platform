@@ -104,6 +104,18 @@ export interface Notification {
   lastError: string | null;
 }
 
+// One line in the audit log: who did what, and when. Append-only. See lib/audit.ts.
+export interface AuditEntry {
+  id: string;
+  at: string;
+  actorId: string | null;
+  /** the actor's name at the time, so the entry still reads right after a rename or removal */
+  actorName: string;
+  action: string;
+  targetLabel: string | null;
+  detail: string | null;
+}
+
 export interface Database {
   nextTicketNumber: number;
   comments: Comment[];
@@ -114,6 +126,8 @@ export interface Database {
   assetRequests: AssetRequest[];
   flowRuns: FlowRun[];
   notifications: Notification[];
+  /** Never loaded by ordinary reads or saves (see schema.ts, lazy). It starts empty, and what you add is appended. */
+  auditLog: AuditEntry[];
 }
 
 export const SLA_HOURS: Record<Priority, number> = {
