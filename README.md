@@ -19,6 +19,7 @@ An IT helpdesk and asset tracker built with Next.js. It is structured like a Mic
 - **Flow: Escalate overdue tickets**: bumps the priority of tickets past their SLA (manager only).
 - **Flow: Asset request approval**: managers approve or reject. Approving assigns an available asset from stock.
 - **Flow runs**: every run and the actions it took.
+- **Reports** (staff) with SLA, resolution and first-reply times, and an **audit log** (managers) of who changed what.
 - **Assets**: IT staff add assets and change status and holder.
 - **Password reset by email** (with a provider; a dev outbox otherwise), a health endpoint, security headers, and automated accessibility checks.
 - **Users** (managers): create staff accounts, change roles, reset passwords, deactivate accounts. **Account**: everyone can change their own password.
@@ -32,9 +33,14 @@ Sign in as any demo account (listed on the login page) to try each role: employe
 | ![Dashboard](docs/screenshots/dashboard.png) **Dashboard** (manager) | ![Ticket](docs/screenshots/ticket-detail.png) **Ticket**: comments, an internal note, audit trail |
 | ![Flow runs](docs/screenshots/flows.png) **Flow runs** | ![Users](docs/screenshots/admin-users.png) **User administration** |
 | ![Assets](docs/screenshots/assets.png) **Assets** | ![Requests](docs/screenshots/requests.png) **Asset requests** and approvals |
+| ![Reports](docs/screenshots/reports.png) **Reports** for staff | ![Audit log](docs/screenshots/audit-log.png) **Audit log** for managers |
 | ![Login](docs/screenshots/login.png) **Sign in** with demo accounts | ![Phone](docs/screenshots/tickets-mobile.png) **Phone width** |
 
 Regenerate them with `npm run screenshots`.
+
+## Take the tour
+
+[docs/WALKTHROUGH.md](docs/WALKTHROUGH.md) is a guided tour by role (employee, agent, manager) with what to point out at each step, a five-minute script for a demo or interview, and the questions you are likely to be asked.
 
 ## Docs
 

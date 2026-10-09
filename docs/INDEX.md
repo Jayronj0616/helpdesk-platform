@@ -4,6 +4,7 @@ Start here. Each doc answers one question, so read only what the task needs.
 
 | Doc | Question it answers | When to read |
 |---|---|---|
+| [WALKTHROUGH.md](WALKTHROUGH.md) | How do I tour the app by role, and what do I say about it? | Demos, interviews, onboarding a teammate |
 | [HANDOFF.md](HANDOFF.md) | Where did the last session stop and what is next? | **Always first** when resuming |
 | [PROGRESS.md](PROGRESS.md) | What is done, in progress, and in the backlog? | Picking a task, finishing a task |
 | [STRUCTURE.md](STRUCTURE.md) | Where does each thing live? What are the code conventions? | Before editing any code |
