@@ -48,7 +48,10 @@ function loadStatements(specs: TableSpec[]): InStatement[] {
   ];
 }
 
-function fromResults(results: ResultSet[], specs: TableSpec[] = TABLES): Database {
+// What an ordinary read or save loads. Lazy tables (append-only logs) are left out.
+const EAGER = TABLES.filter((t) => !t.lazy);
+
+function fromResults(results: ResultSet[], specs: TableSpec[] = EAGER): Database {
   const db: Record<string, unknown> = { nextTicketNumber: 1 };
   specs.forEach((spec, i) => {
     db[spec.key] = results[i].rows.map((r) => fromSql(spec, r));
@@ -58,7 +61,13 @@ function fromResults(results: ResultSet[], specs: TableSpec[] = TABLES): Databas
   return db as unknown as Database;
 }
 
-const ALL_LOAD = loadStatements(TABLES);
+const ALL_LOAD = loadStatements(EAGER);
+
+/** Gives a full Database the lazy tables as empty arrays, so a save can append to them without loading them. */
+function withLazy(db: Database): Database {
+  for (const spec of TABLES) if (spec.lazy) (db as unknown as Record<string, unknown>)[spec.key] = [];
+  return db;
+}
 
 function snapshot(db: Database): Record<string, Snapshot> {
   const out: Record<string, Snapshot> = {};
@@ -152,7 +161,7 @@ export async function readDb<K extends TableKey>(only: readonly K[]): Promise<Pi
 export async function readDb(only?: readonly TableKey[]): Promise<unknown> {
   await ensureSeeded();
   const client = await getDb();
-  if (!only) return fromResults(await client.batch(ALL_LOAD, "read"));
+  if (!only) return withLazy(fromResults(await client.batch(ALL_LOAD, "read")));
   const specs = TABLES.filter((t) => only.includes(t.key));
   const db = fromResults(await client.batch(loadStatements(specs), "read"), specs) as unknown as Record<string, unknown>;
   delete db.nextTicketNumber; // not asked for, and not in the Pick type
@@ -177,7 +186,7 @@ export function mutate<T>(fn: (db: Database) => T): Promise<T> {
     const client = await getDb();
     const tx = await client.transaction("write");
     try {
-      const db = fromResults(await tx.batch(ALL_LOAD));
+      const db = withLazy(fromResults(await tx.batch(ALL_LOAD)));
       const before = snapshot(db);
       const nextBefore = db.nextTicketNumber;
       const result = fn(db);
