@@ -69,6 +69,17 @@ test("search, filters and sorting work, and links keep the filters", async ({ pa
   await expect(page.getByText(/\d+ of \d+ tickets$/)).toBeVisible(); // invalid values are ignored
 });
 
+test("pressing Clear resets the filter controls as well as the results", async ({ page }) => {
+  await page.goto("/tickets?status=new&priority=high");
+  await expect(page.getByLabel("Status", { exact: true })).toHaveValue("new");
+  await expect(page.getByLabel("Priority")).toHaveValue("high");
+
+  await page.getByRole("link", { name: "Clear" }).click();
+  await expect(page).toHaveURL(/\/tickets$/);
+  await expect(page.getByLabel("Status", { exact: true })).toHaveValue(""); // not still "new"
+  await expect(page.getByLabel("Priority")).toHaveValue("");
+});
+
 test("an employee can request equipment", async ({ page }) => {
   await page.goto("/requests");
   await page.getByLabel("Asset type").selectOption("Headset");

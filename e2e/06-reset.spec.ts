@@ -16,6 +16,13 @@ test("resetting demo data restores the seed, removes registered users, and keeps
 
   await page.goto("/tickets");
   await expect(page.getByText("6 of 6 tickets")).toBeVisible();
+
+  // The audit log is not part of the demo data: the reset is recorded in it and everything before it stays.
+  await page.goto("/admin/audit");
+  await expect(page.getByRole("row").filter({ hasText: "Demo data reset" }).first()).toContainText("Dina Ramos");
+  await expect(page.getByRole("row").filter({ hasText: "User created" }).filter({ hasText: "Sam Okoye" }).first()).toBeVisible();
+  await expect(page.getByRole("row").filter({ hasText: "Password changed" }).filter({ hasText: "Maria Santos" }).first()).toBeVisible(); // 05-account
+  await expect(page.getByRole("row").filter({ hasText: "Password reset by email" }).filter({ hasText: "Ben Lim" }).first()).toBeVisible(); // 05-password-reset
 });
 
 test("after a reset the demo accounts work again with the demo password", async ({ page }) => {
