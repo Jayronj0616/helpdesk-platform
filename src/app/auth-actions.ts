@@ -4,6 +4,8 @@ import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { authenticate, changeOwnPassword, normalizeEmail, registerUser } from "@/lib/auth/credentials";
+import { recordAudit } from "@/lib/audit";
+import { readDb } from "@/lib/dataverse/store";
 import { loginLimiter } from "@/lib/auth/rate-limit";
 import { consumeResetToken, createResetToken } from "@/lib/auth/reset";
 import { appUrl, passwordResetAvailable, sendMail } from "@/lib/mail";
@@ -76,6 +78,7 @@ export async function changePassword(_prev: FormState, formData: FormData): Prom
   if (!result.ok) return { error: result.error };
 
   await loginLimiter.reset(`password|${user.id}`);
+  await recordAudit({ id: user.id, name: user.name }, "account.password_changed", { detail: "Other devices were signed out" });
   return { message: "Password changed. Your other devices were signed out." };
 }
 
@@ -129,5 +132,10 @@ export async function completePasswordReset(_prev: FormState, formData: FormData
 
   const result = await consumeResetToken(String(formData.get("token") ?? ""), String(formData.get("password") ?? ""));
   if (!result.ok) return { error: result.error };
+  // Whose password it was is only known from the link, so look the person up for the record.
+  if ("userId" in result) {
+    const person = (await readDb(["users"])).users.find((u) => u.id === result.userId);
+    if (person) await recordAudit({ id: person.id, name: person.name }, "account.password_reset_by_email", { detail: "Signed out everywhere" });
+  }
   redirect("/login?reset=1");
 }
