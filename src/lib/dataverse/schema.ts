@@ -7,8 +7,14 @@ export interface TableSpec {
   /** SQL table name */
   sql: string;
   /** key of the array on the Database object */
-  key: "users" | "categories" | "tickets" | "comments" | "assets" | "assetRequests" | "flowRuns" | "notifications";
+  key: "users" | "categories" | "tickets" | "comments" | "assets" | "assetRequests" | "flowRuns" | "notifications" | "auditLog";
   columns: Record<string, ColumnKind>;
+  /**
+   * Lazy tables are append-only logs that can grow without limit: ordinary reads and saves never load them.
+   * A save starts with an empty array and only the entries added during it are inserted; they are read with
+   * their own targeted queries (see lib/audit.ts).
+   */
+  lazy?: boolean;
   /** ORDER BY clause used when loading. Arrays are newest first where code relies on unshift(). */
   orderBy: string;
   /** extra column constraints, keyed by column name */
@@ -112,6 +118,14 @@ export const TABLES: TableSpec[] = [
       attempts: "NOT NULL DEFAULT 0",
     },
   },
+  {
+    sql: "audit_log",
+    orderBy: "at DESC, id DESC",
+    lazy: true,
+    key: "auditLog",
+    columns: { id: "text", at: "text", actorId: "text", actorName: "text", action: "text", targetLabel: "text", detail: "text" },
+    constraints: { id: "PRIMARY KEY", at: "NOT NULL", actorName: "NOT NULL", action: "NOT NULL" },
+  },
 ];
 
 // Indexes for the lookups pages make. CREATE INDEX IF NOT EXISTS is safe to run on every connect, so
@@ -123,6 +137,8 @@ export const INDEX_SQL = [
   "CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status)",
   "CREATE INDEX IF NOT EXISTS idx_requests_requester ON asset_requests(requester_id)",
   "CREATE INDEX IF NOT EXISTS idx_notifications_status ON notifications(status, attempts)",
+  "CREATE INDEX IF NOT EXISTS idx_audit_at ON audit_log(at)",
+  "CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action, at)",
 ];
 
 export const snake = (s: string) => s.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
