@@ -15,7 +15,7 @@ export function Nav({ user }: { user: User | null }) {
   const links = [
     ...LINKS,
     ...(staff ? [{ href: "/reports", label: "Reports" }] : []),
-    ...(user?.role === "manager" ? [{ href: "/admin/users", label: "Users" }, { href: "/admin/categories", label: "Categories" }] : []),
+    ...(user?.role === "manager" ? [{ href: "/admin/users", label: "Users" }, { href: "/admin/categories", label: "Categories" }, { href: "/admin/audit", label: "Audit log" }] : []),
   ];
   return (
     <header className="border-b border-slate-200 bg-white">
