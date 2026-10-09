@@ -55,6 +55,24 @@ test("capture the README screenshots", async ({ page }) => {
     await expect(page.getByText("0 waiting")).toBeVisible();
   }).toPass({ timeout: 15_000 });
   await shot(page, "flows");
+  await page.goto("/reports");
+  await shot(page, "reports");
+
+  // A little admin work, so the audit log has something to show
+  await page.goto("/admin/categories");
+  await page.getByLabel("Category name").fill("Printers and scanners");
+  await page.getByRole("button", { name: "Add category" }).click();
+  await expect(page.getByText("Added Printers and scanners.")).toBeVisible();
+  await page.goto("/admin/users");
+  await page.getByLabel("Full name").fill("Sam Okoye");
+  await page.getByLabel("Email").fill("sam@contoso.test");
+  await page.getByLabel("Role", { exact: true }).selectOption("agent");
+  await page.getByLabel("Temporary password").fill("a-temporary-pass-1");
+  await page.getByRole("button", { name: "Create user" }).click();
+  await expect(page.getByText("Created Sam Okoye (agent).")).toBeVisible();
+  await page.goto("/admin/audit");
+  await expect(page.getByRole("row").filter({ hasText: "User created" })).toBeVisible();
+  await shot(page, "audit-log");
   await logout(page);
 
   // Agent: a ticket with a public comment, an internal note, the flow's escalation and a status change
