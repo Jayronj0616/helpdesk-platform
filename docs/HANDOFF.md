@@ -9,7 +9,8 @@ An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power P
 - Everything in PROGRESS.md under "Done" works. Run `git status -sb` to see whether anything is unpushed.
 - Real auth and a real database are in (SQLite via `@libsql/client`; hosted Turso in production, because Vercel's disk is read-only and temporary).
 - Admin features are in: `/admin/users` (managers), `/account` (everyone), asset add and edit (staff), and a production first-run mode (`DEMO_MODE=0` plus `ADMIN_EMAIL` and `ADMIN_PASSWORD`).
-- Verified: 276 unit tests (`npm test`), 57 Playwright end-to-end tests (`npm run test:e2e`, real Chrome, includes axe accessibility checks), lint (including type-aware promise rules), types and build are clean. GitHub Actions runs all of it on every push and is green.
+- Verified: 317 unit tests (`npm test`), 69 Playwright end-to-end tests (`npm run test:e2e`, real Chrome, includes axe accessibility and dark-device checks), lint (including type-aware promise rules), types and build are clean. GitHub Actions runs all of it on every push.
+- Latest additions: the staff **reports** page, the manager **audit log**, and `docs/WALKTHROUGH.md` (read it for a tour of every screen by role).
 - Also built (all pushed to `master`): versioned schema migrations (4 so far), user deactivation, a database-backed rate limiter, password reset by email, security headers, `/api/health`, generated README screenshots, profile editing, manager-managed categories, CSV export with formula protection, satisfaction ratings, reopening resolved tickets, scoped reads (`readDb([...tables])`), the SLA clock pausing while a ticket is Waiting, scheduled maintenance (auto-close plus a `CRON_SECRET`-protected cron endpoint and `vercel.json`), and **real flow emails through a transactional outbox** (queued in the flow's own transaction, delivered after the response with retries, queue visible to managers).
 - Production-build behaviour was checked by hand: without an email provider the reset pages and `/dev/outbox` are 404 and the login link is hidden.
 - **Not verified:** anything against a real Turso database (only a local libSQL file), and real email delivery through Resend (only unit tested with a mocked `fetch`).
@@ -41,6 +42,8 @@ An IT helpdesk and asset tracker in Next.js, structured like a Microsoft Power P
 - Cron and `after()` work happens after the response, so tests that check email poll (`toPass`) instead of reading once.
 - The UI is **light-only on purpose** (`color-scheme: light` in `globals.css`); do not re-add the starter's `prefers-color-scheme: dark` block. Visual bugs that depend on the device (dark mode, reduced motion, small screens) are invisible to the default test run: emulate them explicitly, as `05-appearance` does.
 - A second `next dev` cannot start in the same folder while one is running (Next takes a lock), so stop a preview server before `npm run test:e2e` or `npm run screenshots`.
+- Anything that changes access, settings or shared data should also write an audit entry: inside the `mutate` with `addAudit(db, actor, action, {target, detail})`, or after a non-transactional change with `await recordAudit(...)`. Add the action to `AUDIT_ACTIONS` in `lib/audit.ts`, never put a secret in an entry, and add a case to `04-log`. The audit table is **lazy**: it is never in a `readDb()` result or a save's diff by design.
+- GET filter forms need `key={...}` on the `<form>` (see DECISIONS 32), or Clear leaves the controls on the old value.
 - Windows: git prints CRLF warnings and may exit 255 on success. Check `git log`, not the exit code.
 - The user wants many small, single-purpose commits (they care about GitHub contributions).
 
