@@ -89,5 +89,8 @@ The flows only pretended to send email. Sending inside the flow would couple eve
 ## 29. Light-only, declared on purpose
 On a device set to dark mode the app rendered near-black with unreadable dark text: the Next.js starter's stylesheet switched the page colours in a `prefers-color-scheme: dark` block, while every component used fixed light colours, and that unlayered `body` rule also beat Tailwind's classes (and forced Arial over the Geist font). Nothing caught it because every test and screenshot ran in light mode; it showed up the first time the app was opened in a dark-mode browser. A real dark theme means colouring every component, which is a feature of its own, so the app now says `color-scheme: light` (page, form controls and scrollbars all stay light) and a test emulates a dark device and checks background, text, controls, contrast and font. If dark mode is wanted later, build it as a feature with that test turned into its expected-dark twin.
 
-## 30. Small commits
+## 30. Reports are pure functions with the definitions on the page
+A number nobody can explain is worse than no number, so each figure has one written definition (shown under the report) and one pure function with the current time passed in, which is what makes them testable with fixed dates. Choices that matter: a reopened ticket is not "resolved" until it is resolved again; SLA met compares with the due date that already includes Waiting time, so waiting on a customer is never held against the team; "nothing to measure" is a dash, never 0% or NaN; and staff with no tickets still appear, so a quiet person is visible rather than missing. The page reads only the tables it needs and is staff-only (404 for employees).
+
+## 31. Small commits
 The owner wants one logical change per commit (it also reads well in history and helps their GitHub contribution graph).

@@ -132,6 +132,14 @@ Interview points: approvals show up for the manager in Teams, Outlook and the Po
 3. Visuals: 4 cards (the measures plus pending requests), a bar chart of tickets by Category, a donut of Assets by Status, a line chart of tickets per day.
 4. Publish to your workspace. Embed it in the model-driven app dashboard (Add > Power BI) if the licence allows, or pin it to Teams.
 
+**Matching the reports page.** The same figures as DAX measures (see `docs/FEATURES.md` for the definitions):
+```
+Resolved = CALCULATE(COUNTROWS(Ticket), Ticket[Status] IN {"Resolved", "Closed"}, NOT(ISBLANK(Ticket[Resolved On])))
+SLA Met % = DIVIDE(CALCULATE(COUNTROWS(Ticket), Ticket[Resolved On] <= Ticket[Due At], NOT(ISBLANK(Ticket[Resolved On]))), [Resolved])
+Avg Resolution Hours = AVERAGEX(FILTER(Ticket, NOT(ISBLANK(Ticket[Resolved On]))), DATEDIFF(Ticket[Created On], Ticket[Resolved On], HOUR))
+```
+`DIVIDE` returns blank instead of an error when there are no resolved tickets, which is the same "a dash, not zero" rule the page follows. Slice by Assignee, Category and Priority for the three tables, and put a date slicer on Created On for the period filter.
+
 ## 5. Suggested study order
 
 1. Dataverse basics: tables, columns, lookups, choices (Microsoft Learn: *Get started with Microsoft Dataverse*).

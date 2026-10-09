@@ -34,6 +34,7 @@ src/
       [id]/page.tsx       Ticket detail, status/assignee/asset edit, comment thread
     assets/page.tsx       Asset register; staff can add assets and change status and holder
     requests/page.tsx     Asset request approval workflow
+    reports/page.tsx      Staff reports (Power BI analog)
     flows/page.tsx        Flow run history, manual flow triggers
   components/
     Nav.tsx               Top nav with the signed-in user and Sign out
@@ -50,6 +51,7 @@ src/
       migrations.ts       Numbered schema migrations for existing databases (version kept in meta)
       store.ts            readDb (all or a typed list of tables), readComments, mutate (write transaction, diff write-back), resetDb, newId, first-run seed
       seed.ts             Demo data
+      reports.ts          Pure report maths: stats, summarize, breakdown, byAgent, dailyTrend, buildReport, formatters
       queries.ts          Pure helpers over rows (isOpen, isOverdue, filterTickets, parseTicketFilters, paginate, ticketsPerDay)
       admin.ts            Pure rules: changeUserRole, setUserActive, updateProfile, createAsset, updateAsset, requestTypes, add/rename/deleteCategory
       lifecycle.ts        reopenTicket, canReopen (window, SLA restart, assignee fallback)
