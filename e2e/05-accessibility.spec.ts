@@ -29,7 +29,7 @@ test("employee pages have no serious accessibility violations", async ({ page })
 
 test("staff and manager pages have no serious accessibility violations", async ({ page }) => {
   await loginAs(page, USERS.dina);
-  for (const path of ["/tickets/t1", "/assets", "/flows", "/reports", "/admin/users", "/admin/categories"]) {
+  for (const path of ["/tickets/t1", "/assets", "/flows", "/reports", "/admin/users", "/admin/categories", "/admin/audit"]) {
     await page.goto(path);
     await expectNoSeriousViolations(page);
   }
