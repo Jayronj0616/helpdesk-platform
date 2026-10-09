@@ -30,7 +30,7 @@ export default async function Reports({ searchParams }: PageProps<"/reports">) {
     <>
       <PageTitle sub={`Tickets created in the ${periodLabel}. The daily chart always shows the last 14 days.`}>Reports</PageTitle>
 
-      <form method="get" className="mb-6 flex flex-wrap items-end gap-3">
+      <form method="get" key={key} className="mb-6 flex flex-wrap items-end gap-3">
         <div>
           <label htmlFor="period" className="mb-1 block text-sm font-medium">Period</label>
           <select id="period" name="days" defaultValue={key} className={`${inputCls} w-auto`}>
