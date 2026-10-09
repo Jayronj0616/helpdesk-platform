@@ -22,6 +22,7 @@ export function seedProduction(adminEmail: string): Database {
     assetRequests: [],
     flowRuns: [],
     notifications: [],
+    auditLog: [],
   };
 }
 
@@ -91,5 +92,6 @@ export function seedDatabase(): Database {
     ],
     flowRuns: [],
     notifications: [],
+    auditLog: [],
   };
 }
