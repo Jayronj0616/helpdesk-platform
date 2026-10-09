@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { addAudit, recordAudit } from "@/lib/audit";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { mutate, newId, resetDb } from "@/lib/dataverse/store";
@@ -155,7 +156,10 @@ export async function decideRequest(formData: FormData) {
 export async function runCloseResolved() {
   const user = await requireUser();
   if (!canApprove(user)) return;
-  await mutate((db) => closeStaleResolved(db));
+  await mutate((db) => {
+    const n = closeStaleResolved(db);
+    addAudit(db, { id: user.id, name: user.name }, "flow.close_resolved_run", { detail: `${n} ticket${n === 1 ? "" : "s"} closed` });
+  });
   deliverSoon();
   revalidatePath("/", "layout");
 }
@@ -163,7 +167,10 @@ export async function runCloseResolved() {
 export async function runEscalation() {
   const user = await requireUser();
   if (!canApprove(user)) return;
-  await mutate((db) => escalateOverdue(db));
+  await mutate((db) => {
+    const n = escalateOverdue(db);
+    addAudit(db, { id: user.id, name: user.name }, "flow.escalation_run", { detail: `${n} ticket${n === 1 ? "" : "s"} escalated` });
+  });
   deliverSoon();
   revalidatePath("/", "layout");
 }
@@ -173,6 +180,7 @@ export async function resetDemoData() {
   const user = await requireUser();
   if (!DEMO_MODE || !canApprove(user)) return;
   await resetDb();
+  await recordAudit({ id: user.id, name: user.name }, "demo.reset", { detail: "Tickets, assets, requests and demo accounts restored to the sample data" });
   revalidatePath("/", "layout");
 }
 
@@ -186,7 +194,11 @@ export async function createAssetAction(_prev: FormState, formData: FormData): P
     purchasedAt: String(formData.get("purchasedAt") ?? ""),
   };
 
-  const result = await mutate((db) => createAsset(db, values));
+  const result = await mutate((db) => {
+    const r = createAsset(db, values);
+    if (r.ok) addAudit(db, { id: user.id, name: user.name }, "asset.added", { target: r.asset.tag, detail: `${r.asset.name} (${r.asset.type})` });
+    return r;
+  });
   if (!result.ok) return { error: result.error, values };
   revalidatePath("/", "layout");
   return { message: `Added ${result.asset.tag}.` };
@@ -195,9 +207,17 @@ export async function createAssetAction(_prev: FormState, formData: FormData): P
 export async function updateAssetAction(formData: FormData): Promise<void> {
   const user = await requireUser();
   if (!canWorkTickets(user)) return;
-  await mutate((db) =>
-    updateAsset(db, String(formData.get("id") ?? ""), String(formData.get("status") ?? ""), String(formData.get("assignedToId") ?? "")),
-  );
+  const id = String(formData.get("id") ?? "");
+  await mutate((db) => {
+    const asset = db.assets.find((a) => a.id === id);
+    const before = asset ? `${asset.status}${asset.assignedToId ? ` with ${db.users.find((u) => u.id === asset.assignedToId)?.name ?? "someone"}` : ""}` : "";
+    const r = updateAsset(db, id, String(formData.get("status") ?? ""), String(formData.get("assignedToId") ?? ""));
+    if (r.ok && asset) {
+      const after = `${asset.status}${asset.assignedToId ? ` with ${db.users.find((u) => u.id === asset.assignedToId)?.name ?? "someone"}` : ""}`;
+      if (after !== before) addAudit(db, { id: user.id, name: user.name }, "asset.updated", { target: asset.tag, detail: `${before} to ${after}` });
+    }
+    return r;
+  });
   revalidatePath("/", "layout");
 }
 
@@ -239,6 +259,7 @@ export async function reopenTicketAction(_prev: FormState, formData: FormData): 
 export async function sendQueuedEmails() {
   const user = await requireUser();
   if (!canApprove(user)) return;
-  await retryFailedAndDeliver();
+  const result = await retryFailedAndDeliver();
+  await recordAudit({ id: user.id, name: user.name }, "flow.emails_sent", { detail: `${result.sent} sent, ${result.failed} failed, ${result.skipped} skipped, ${result.requeued} failures retried` });
   revalidatePath("/flows");
 }
